@@ -1,0 +1,20 @@
+module(
+    name = "zetasql_wasi",
+    version = "0.0.1",
+)
+
+bazel_dep(name = "rules_repo", version = "0.1.0")
+
+# Define the ZetaSQL version
+# This should match ZETASQL_VERSION
+COMMIT_HASH = "e867a99120946b093b2569d6399356255639a353"
+
+http_archive = use_repo_rule("@rules_repo//repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "com_google_zetasql",
+    urls = ["https://github.com/google/zetasql/archive/%s.zip" % COMMIT_HASH],
+    strip_prefix = "zetasql-%s" % COMMIT_HASH,
+    patches = ["//patches:patches.bzl"],  # We need to adjust how patches are loaded
+    patch_args = ["-p1"],
+)
