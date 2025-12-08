@@ -1,0 +1,32 @@
+From: heoh <h0h6h2h5@gmail.com>
+Subject: [PATCH] WASI: Skip 64-bit pointer static_assert for WASI/Emscripten
+ targets (support wasm32 builds)
+
+---
+ zetasql/public/value_inl.h | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/zetasql/public/value_inl.h b/zetasql/public/value_inl.h
+index 8643f2cc..1375ceab 100644
+--- a/zetasql/public/value_inl.h
++++ b/zetasql/public/value_inl.h
+@@ -1133,11 +1133,11 @@ class Value::Metadata::Content {
+       static_assert(false,
+                     "Platform is not supported: neither big nor little endian");
+ #endif
+-#ifndef __EMSCRIPTEN__
+-      static_assert(
+-          sizeof(void*) == 8,
+-          "Platform is not supported: size of pointer is not 8 bytes");
+-#endif  // __EMSCRIPTEN__
++#if !defined(__EMSCRIPTEN__) && !defined(__wasi__)
++  static_assert(
++      sizeof(void*) == 8,
++      "Platform is not supported: size of pointer is not 8 bytes");
++#endif  // __EMSCRIPTEN__ || __wasi__
+     };
+   };
+ 
+-- 
+2.34.1
+

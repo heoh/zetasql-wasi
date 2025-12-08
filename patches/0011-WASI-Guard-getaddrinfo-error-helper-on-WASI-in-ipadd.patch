@@ -1,0 +1,36 @@
+From: heoh <h0h6h2h5@gmail.com>
+Subject: [PATCH] WASI: Guard getaddrinfo error helper on WASI in
+ ipaddress_oss.cc
+
+- Wrap InternalGetaddrinfoErrorToStatus with #ifndef __wasi__ so that
+  code referencing getaddrinfo-only symbols (gai_strerror, EAI_*) is not
+  compiled on WASI targets which do not provide getaddrinfo.
+- This prevents build failures on WASI due to undefined getaddrinfo
+  symbols while retaining full behavior on POSIX platforms.
+---
+ zetasql/base/net/ipaddress_oss.cc | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/zetasql/base/net/ipaddress_oss.cc b/zetasql/base/net/ipaddress_oss.cc
+index b03d41f7..262eceb5 100644
+--- a/zetasql/base/net/ipaddress_oss.cc
++++ b/zetasql/base/net/ipaddress_oss.cc
+@@ -293,6 +293,7 @@ bool StringToIPAddress(const absl::string_view str, IPAddress* out) {
+ namespace {
+ 
+ // Maps error values from getaddrinfo(3) to canonical Status codes.
++#ifndef __wasi__
+ absl::Status InternalGetaddrinfoErrorToStatus(int rval, int copied_errno) {
+   if (rval == 0) return absl::OkStatus();
+ 
+@@ -329,6 +330,7 @@ absl::Status InternalGetaddrinfoErrorToStatus(int rval, int copied_errno) {
+           absl::StrCat("getaddrinfo returned ", rval, " (", error_str, ")"));
+   }
+ }
++#endif  // __wasi__
+ 
+ }  // namespace
+ 
+-- 
+2.34.1
+

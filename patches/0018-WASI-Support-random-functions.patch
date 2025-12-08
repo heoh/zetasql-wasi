@@ -1,0 +1,23 @@
+From: heoh <h0h6h2h5@gmail.com>
+Subject: [PATCH] WASI: Support random functions
+
+---
+ .bazelrc | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/.bazelrc b/.bazelrc
+index 7deca4b2..a1598f54 100644
+--- a/.bazelrc
++++ b/.bazelrc
+@@ -94,6 +94,8 @@ build:wasi --copt=-DU_HAVE_TM_GMTOFF=0
+ 
+ # Workarounds
+ build:wasi --copt=-D__asmjs__=1
++build:wasi --copt=-DABSL_RANDOM_USE_GET_ENTROPY=1
++build:wasi --copt=-DABSL_RANDOM_INTERNAL_AES_DISPATCH=0
+ 
+ # Linker flags
+ build:wasi --linkopt=--target=wasm32-wasip1-threads
+-- 
+2.34.1
+

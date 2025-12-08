@@ -1,0 +1,24 @@
+From: heoh <h0h6h2h5@gmail.com>
+Subject: [PATCH] WASI: Exclude spaceship operator for WASI in json_value.cc
+
+---
+ zetasql/public/json_value.cc | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/zetasql/public/json_value.cc b/zetasql/public/json_value.cc
+index 059a1ddc..71902947 100644
+--- a/zetasql/public/json_value.cc
++++ b/zetasql/public/json_value.cc
+@@ -901,7 +901,8 @@ absl::partial_ordering JsonCompareNumber(double x, Int y) {
+ template <typename Type>
+ absl::partial_ordering spaceship_operator(const Type& x, const Type& y) {
+ #if defined(__cpp_impl_three_way_comparison) && \
+-    __cpp_impl_three_way_comparison >= 201907L
++    __cpp_impl_three_way_comparison >= 201907L && \
++    !defined(__wasi__)
+   return x <=> y;
+ #else
+   if (x < y) {
+-- 
+2.34.1
+

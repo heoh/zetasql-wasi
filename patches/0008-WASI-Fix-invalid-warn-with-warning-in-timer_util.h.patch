@@ -1,0 +1,23 @@
+From: heoh <h0h6h2h5@gmail.com>
+Subject: [PATCH] WASI: Fix invalid #warn with #warning in timer_util.h
+
+---
+ zetasql/common/timer_util.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/zetasql/common/timer_util.h b/zetasql/common/timer_util.h
+index 035e5e57..c959411e 100644
+--- a/zetasql/common/timer_util.h
++++ b/zetasql/common/timer_util.h
+@@ -39,7 +39,7 @@ class ResourceMeasurement {
+ #ifdef CLOCK_THREAD_CPUTIME_ID
+     clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts);
+ #else
+-#warn Thread CPU time measurement not supported
++#warning Thread CPU time measurement not supported
+     ts = {};
+ #endif
+     return ts.tv_sec * 1000000000 + ts.tv_nsec;
+-- 
+2.34.1
+

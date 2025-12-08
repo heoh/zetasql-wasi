@@ -1,0 +1,22 @@
+From: heoh <h0h6h2h5@gmail.com>
+Subject: [PATCH] WASI: Disable OpenSSL socket support in Bazel configuration
+
+---
+ .bazelrc | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/.bazelrc b/.bazelrc
+index 6d7b521a..65511dc6 100644
+--- a/.bazelrc
++++ b/.bazelrc
+@@ -86,6 +86,7 @@ build:wasi --copt=-D_WASI_EMULATED_SIGNAL
+ 
+ # Disable unsupported features
+ build:wasi --copt=-DGTEST_HAS_STREAM_REDIRECTION=0
++build:wasi --copt=-DOPENSSL_NO_SOCK
+ 
+ # Linker flags
+ build:wasi --linkopt=--target=wasm32-wasip1-threads
+-- 
+2.34.1
+

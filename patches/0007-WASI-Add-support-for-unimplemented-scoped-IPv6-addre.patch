@@ -1,0 +1,35 @@
+From: heoh <h0h6h2h5@gmail.com>
+Subject: [PATCH] WASI: Add support for unimplemented scoped IPv6 addresses in
+ StringToIPAddressWithOptionalScope
+
+---
+ zetasql/base/net/ipaddress_oss.cc | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/zetasql/base/net/ipaddress_oss.cc b/zetasql/base/net/ipaddress_oss.cc
+index a51733b9..b03d41f7 100644
+--- a/zetasql/base/net/ipaddress_oss.cc
++++ b/zetasql/base/net/ipaddress_oss.cc
+@@ -358,6 +358,11 @@ absl::StatusOr<IPAddress> StringToIPAddressWithOptionalScope(
+     return absl::InvalidArgumentError("missing zone_id");
+   }
+ 
++#ifdef __wasi__
++  // WASI doesn't support getaddrinfo, so we can't parse scoped addresses.
++  return absl::UnimplementedError(
++      "scoped IPv6 addresses not supported on WASI");
++#else
+   const std::string str_null_terminated(str);
+ 
+   // Trust getaddrinfo()'s ability to parse scope_ids and interface names.
+@@ -382,6 +387,7 @@ absl::StatusOr<IPAddress> StringToIPAddressWithOptionalScope(
+   }
+   const auto* sin6 = reinterpret_cast<sockaddr_in6*>(res->ai_addr);
+   return MakeIPAddressWithScopeId(sin6->sin6_addr, sin6->sin6_scope_id);
++#endif  // __wasi__
+ }
+ 
+ bool PackedStringToIPAddress(absl::string_view str, IPAddress* out) {
+-- 
+2.34.1
+

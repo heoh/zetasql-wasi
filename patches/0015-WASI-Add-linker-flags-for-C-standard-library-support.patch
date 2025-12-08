@@ -1,0 +1,24 @@
+From: heoh <h0h6h2h5@gmail.com>
+Subject: [PATCH] WASI: Add linker flags for C++ standard library support
+
+---
+ .bazelrc | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/.bazelrc b/.bazelrc
+index efd3c0bc..e4a6414f 100644
+--- a/.bazelrc
++++ b/.bazelrc
+@@ -94,6 +94,9 @@ build:wasi --copt=-DU_HAVE_TM_GMTOFF=0
+ 
+ # Linker flags
+ build:wasi --linkopt=--target=wasm32-wasip1-threads
++build:wasi --linkopt=-stdlib=libc++
++build:wasi --linkopt=-lc++
++build:wasi --linkopt=-lc++abi
+ build:wasi --linkopt=-pthread
+ build:wasi --linkopt=-lwasi-emulated-mman
+ build:wasi --linkopt=-lwasi-emulated-signal
+-- 
+2.34.1
+
