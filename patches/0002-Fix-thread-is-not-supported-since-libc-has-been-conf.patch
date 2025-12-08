@@ -1,0 +1,26 @@
+From: heoh <h0h6h2h5@gmail.com>
+Subject: [PATCH] Fix "<thread> is not supported since libc++ has been
+ configured without support for threads."
+
+---
+ .bazelrc | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/.bazelrc b/.bazelrc
+index 25b98fc4..0e66f5cf 100644
+--- a/.bazelrc
++++ b/.bazelrc
+@@ -76,4 +76,10 @@ build:wasi --features=no_legacy_features
+ build:wasi --noincompatible_validate_top_level_header_inclusions
+ 
+ # Compiler flags
++build:wasi --copt=--target=wasm32-wasip1-threads
+ build:wasi --copt=-fno-exceptions
++build:wasi --copt=-pthread
++
++# Linker flags
++build:wasi --linkopt=--target=wasm32-wasip1-threads
++build:wasi --linkopt=-pthread
+-- 
+2.34.1
+

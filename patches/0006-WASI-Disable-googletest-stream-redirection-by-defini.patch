@@ -1,0 +1,26 @@
+From: heoh <h0h6h2h5@gmail.com>
+Subject: [PATCH] WASI: Disable googletest stream redirection by defining
+ GTEST_HAS_STREAM_REDIRECTION=0 to avoid use of dup/dup2/mkstemp which are not
+ provided by WASI libc
+
+---
+ .bazelrc | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/.bazelrc b/.bazelrc
+index 98b758b2..6d7b521a 100644
+--- a/.bazelrc
++++ b/.bazelrc
+@@ -84,6 +84,9 @@ build:wasi --copt=-pthread
+ build:wasi --copt=-D_WASI_EMULATED_MMAN
+ build:wasi --copt=-D_WASI_EMULATED_SIGNAL
+ 
++# Disable unsupported features
++build:wasi --copt=-DGTEST_HAS_STREAM_REDIRECTION=0
++
+ # Linker flags
+ build:wasi --linkopt=--target=wasm32-wasip1-threads
+ build:wasi --linkopt=-pthread
+-- 
+2.34.1
+

@@ -1,0 +1,21 @@
+From: heoh <h0h6h2h5@gmail.com>
+Subject: [PATCH] WASI: Fix memory error
+
+---
+ .bazelrc | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/.bazelrc b/.bazelrc
+index 9a5c8dd5..7deca4b2 100644
+--- a/.bazelrc
++++ b/.bazelrc
+@@ -103,3 +103,6 @@ build:wasi --linkopt=-lc++abi
+ build:wasi --linkopt=-pthread
+ build:wasi --linkopt=-lwasi-emulated-mman
+ build:wasi --linkopt=-lwasi-emulated-signal
++
++# Memory configuration
++build:wasi --linkopt=-Wl,--max-memory=1073741824  # 1GB
+-- 
+2.34.1
+

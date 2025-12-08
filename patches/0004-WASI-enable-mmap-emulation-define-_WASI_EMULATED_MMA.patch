@@ -1,0 +1,27 @@
+From: heoh <h0h6h2h5@gmail.com>
+Subject: [PATCH] WASI: enable mmap emulation (define _WASI_EMULATED_MMAN and
+ link wasi-emulated-mman)
+
+Some third-party code (e.g. ICU) uses mmap/munmap and related flags (PROT_READ, MAP_SHARED). WASI does not provide a true mmap, so enable the minimal mmap emulation by defining _WASI_EMULATED_MMAN at compile time and linking with -lwasi-emulated-mman for --config=wasi builds. Also apply these flags to host compilation to ensure external dependencies are built with the same behavior.
+---
+ .bazelrc | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/.bazelrc b/.bazelrc
+index 0e66f5cf..41d5dd7a 100644
+--- a/.bazelrc
++++ b/.bazelrc
+@@ -80,6 +80,10 @@ build:wasi --copt=--target=wasm32-wasip1-threads
+ build:wasi --copt=-fno-exceptions
+ build:wasi --copt=-pthread
+ 
++# WASI emulation libraries
++build:wasi --copt=-D_WASI_EMULATED_MMAN
++
+ # Linker flags
+ build:wasi --linkopt=--target=wasm32-wasip1-threads
+ build:wasi --linkopt=-pthread
++build:wasi --linkopt=-lwasi-emulated-mman
+-- 
+2.34.1
+

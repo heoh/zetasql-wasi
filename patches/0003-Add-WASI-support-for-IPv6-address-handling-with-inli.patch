@@ -1,0 +1,250 @@
+From: heoh <h0h6h2h5@gmail.com>
+Subject: [PATCH] Add WASI support for IPv6 address handling with inline
+ accessors
+
+---
+ zetasql/base/net/ipaddress_oss.cc | 33 +++++++------
+ zetasql/base/net/ipaddress_oss.h  | 82 +++++++++++++++++++++++++------
+ 2 files changed, 86 insertions(+), 29 deletions(-)
+
+diff --git a/zetasql/base/net/ipaddress_oss.cc b/zetasql/base/net/ipaddress_oss.cc
+index 87834dfa..a51733b9 100644
+--- a/zetasql/base/net/ipaddress_oss.cc
++++ b/zetasql/base/net/ipaddress_oss.cc
+@@ -21,8 +21,10 @@
+ #include "zetasql/base/net/ipaddress_oss.h"
+ 
+ #include <arpa/inet.h>
++#ifndef __wasi__
+ #include <net/if.h>
+ #include <netdb.h>
++#endif
+ 
+ #include <iterator>
+ #include <limits>
+@@ -73,7 +75,7 @@ in6_addr IPAddress::ipv6_address_slowpath() const {
+   ABSL_CHECK_EQ(AF_INET6, address_family_);
+   if (ABSL_PREDICT_FALSE(HasCompactScopeId(addr_.addr6))) {
+     in6_addr copy = addr_.addr6;
+-    copy.s6_addr32[1] = 0;  // clear the scope_id (interface index)
++    zetasql_wasi::in6_addr32(copy, 1) = 0;  // clear the scope_id (interface index)
+     return copy;
+   }
+   return addr_.addr6;
+@@ -87,13 +89,13 @@ IPAddress HostUInt32ToIPAddress(uint32_t address) {
+ 
+ IPAddress UInt128ToIPAddress(const absl::uint128 bigint) {
+   in6_addr addr6;
+-  addr6.s6_addr32[0] = zetasql_base::ghtonl(
++  zetasql_wasi::in6_addr32(addr6, 0) = zetasql_base::ghtonl(
+       static_cast<uint32_t>(absl::Uint128High64(bigint) >> 32));
+-  addr6.s6_addr32[1] = zetasql_base::ghtonl(
++  zetasql_wasi::in6_addr32(addr6, 1) = zetasql_base::ghtonl(
+       static_cast<uint32_t>(absl::Uint128High64(bigint) & 0xFFFFFFFFULL));
+-  addr6.s6_addr32[2] = zetasql_base::ghtonl(
++  zetasql_wasi::in6_addr32(addr6, 2) = zetasql_base::ghtonl(
+       static_cast<uint32_t>(absl::Uint128Low64(bigint) >> 32));
+-  addr6.s6_addr32[3] = zetasql_base::ghtonl(
++  zetasql_wasi::in6_addr32(addr6, 3) = zetasql_base::ghtonl(
+       static_cast<uint32_t>(absl::Uint128Low64(bigint) & 0xFFFFFFFFULL));
+   return IPAddress(addr6);
+ }
+@@ -127,15 +129,15 @@ int FindLongestZeroWordSequence(const uint16_t* addr) {
+ }
+ 
+ void AppendIPv6ToString(const in6_addr& addr, std::string* out) {
+-  if (addr.s6_addr32[0] == 0 && addr.s6_addr32[1] == 0) {
++  if (zetasql_wasi::in6_addr32(addr, 0) == 0 && zetasql_wasi::in6_addr32(addr, 1) == 0) {
+     // If lower half of address is zero, it starts with :: and it may be
+     // embedded IPv4 address.
+     out->push_back(':');
+     // Check for IPv6 embedded IPv4 address.
+-    if (addr.s6_addr16[4] == 0 &&
+-        (addr.s6_addr16[5] == 0xffff ||
+-         (addr.s6_addr16[5] == 0 && addr.s6_addr16[6] != 0))) {
+-      if (addr.s6_addr16[5] != 0) {
++    if (zetasql_wasi::in6_addr16(addr, 4) == 0 &&
++        (zetasql_wasi::in6_addr16(addr, 5) == 0xffff ||
++         (zetasql_wasi::in6_addr16(addr, 5) == 0 && zetasql_wasi::in6_addr16(addr, 6) != 0))) {
++      if (zetasql_wasi::in6_addr16(addr, 5) != 0) {
+         absl::StrAppend(out, ":ffff");
+       }
+       out->push_back(':');
+@@ -144,24 +146,25 @@ void AppendIPv6ToString(const in6_addr& addr, std::string* out) {
+     }
+     int i = 4;
+     // Skip remaining zero words.
+-    while (i < 8 && addr.s6_addr16[i] == 0) {
++    while (i < 8 && zetasql_wasi::in6_addr16(addr, i) == 0) {
+       ++i;
+     }
+     if (i < 8) {
+       for (; i < 8; ++i) {
+         absl::StrAppend(out, ":",
+-                        absl::Hex(zetasql_base::gntohs(addr.s6_addr16[i])));
++                        absl::Hex(zetasql_base::gntohs(zetasql_wasi::in6_addr16(addr, i))));
+       }
+     } else {
+       out->push_back(':');
+     }
+   } else {
+-    const int start = FindLongestZeroWordSequence(addr.s6_addr16);
++    const int start = FindLongestZeroWordSequence(
++        zetasql_wasi::in6_addr16_ptr(addr));
+     for (int i = 0; i < 8; ++i) {
+       if (i == start) {
+         // At least two words are guaranteed to be zero.
+         i += 2;
+-        while (i < 8 && addr.s6_addr16[i] == 0) {
++        while (i < 8 && zetasql_wasi::in6_addr16(addr, i) == 0) {
+           ++i;
+         }
+         out->push_back(':');
+@@ -173,7 +176,7 @@ void AppendIPv6ToString(const in6_addr& addr, std::string* out) {
+       if (i) {
+         out->push_back(':');
+       }
+-      absl::StrAppend(out, absl::Hex(zetasql_base::gntohs(addr.s6_addr16[i])));
++      absl::StrAppend(out, absl::Hex(zetasql_base::gntohs(zetasql_wasi::in6_addr16(addr, i))));
+     }
+   }
+ }
+diff --git a/zetasql/base/net/ipaddress_oss.h b/zetasql/base/net/ipaddress_oss.h
+index fc8f2ff8..a2657a85 100644
+--- a/zetasql/base/net/ipaddress_oss.h
++++ b/zetasql/base/net/ipaddress_oss.h
+@@ -59,6 +59,60 @@
+ #define s6_addr32 __u6_addr.__u6_addr32
+ #endif
+ 
++// WASI uses a simplified in6_addr with only s6_addr[16] byte array.
++// Provide inline accessors that work across all platforms.
++namespace zetasql_wasi {
++inline uint32_t& in6_addr32(in6_addr& addr, int idx) {
++#if defined(__wasi__)
++  return reinterpret_cast<uint32_t*>(addr.s6_addr)[idx];
++#else
++  return addr.s6_addr32[idx];
++#endif
++}
++inline uint32_t in6_addr32(const in6_addr& addr, int idx) {
++#if defined(__wasi__)
++  return reinterpret_cast<const uint32_t*>(addr.s6_addr)[idx];
++#else
++  return addr.s6_addr32[idx];
++#endif
++}
++inline uint32_t* in6_addr32_ptr(in6_addr& addr) {
++#if defined(__wasi__)
++  return reinterpret_cast<uint32_t*>(addr.s6_addr);
++#else
++  return addr.s6_addr32;
++#endif
++}
++inline const uint32_t* in6_addr32_ptr(const in6_addr& addr) {
++#if defined(__wasi__)
++  return reinterpret_cast<const uint32_t*>(addr.s6_addr);
++#else
++  return addr.s6_addr32;
++#endif
++}
++inline uint16_t& in6_addr16(in6_addr& addr, int idx) {
++#if defined(__wasi__)
++  return reinterpret_cast<uint16_t*>(addr.s6_addr)[idx];
++#else
++  return addr.s6_addr16[idx];
++#endif
++}
++inline uint16_t in6_addr16(const in6_addr& addr, int idx) {
++#if defined(__wasi__)
++  return reinterpret_cast<const uint16_t*>(addr.s6_addr)[idx];
++#else
++  return addr.s6_addr16[idx];
++#endif
++}
++inline const uint16_t* in6_addr16_ptr(const in6_addr& addr) {
++#if defined(__wasi__)
++  return reinterpret_cast<const uint16_t*>(addr.s6_addr);
++#else
++  return addr.s6_addr16;
++#endif
++}
++}  // namespace zetasql_wasi
++
+ namespace zetasql::internal {
+ 
+ // Forward declaration for IPAddress ostream operator, so that DCHECK
+@@ -121,7 +175,7 @@ class IPAddress {
+   // may not have had a scope_id assigned; in this case 0U is also returned.
+   uint32_t scope_id() const {
+     if (is_ipv6() && HasCompactScopeId(addr_.addr6)) {
+-      return ntohl(addr_.addr6.s6_addr32[1]);
++      return ntohl(zetasql_wasi::in6_addr32(addr_.addr6, 1));
+     }
+     return 0U;
+   }
+@@ -194,18 +248,18 @@ class IPAddress {
+   // A much stricter test for whether in6 is a candidate for the kind of
+   // scope_id compaction implemented here (cf. IPAddressMayUseScopeIds()).
+   static bool MayUseCompactScopeIds(const in6_addr& in6) {
+-    return ((in6.s6_addr32[0] == htonl(0xfe800000U)) ||
+-            (in6.s6_addr32[0] == htonl(0xff020000U)));
++    return ((zetasql_wasi::in6_addr32(in6, 0) == htonl(0xfe800000U)) ||
++            (zetasql_wasi::in6_addr32(in6, 0) == htonl(0xff020000U)));
+   }
+ 
+   // Test for whether in6 may safely, compactly store a scope_id.
+   static bool MayStoreCompactScopeId(const in6_addr& in6) {
+-    return (MayUseCompactScopeIds(in6) && (in6.s6_addr32[1] == 0x0U));
++    return (MayUseCompactScopeIds(in6) && (zetasql_wasi::in6_addr32(in6, 1) == 0x0U));
+   }
+ 
+   // Test for whether in6 appears to have a compact scope_id stored.
+   static bool HasCompactScopeId(const in6_addr& in6) {
+-    return (MayUseCompactScopeIds(in6) && (in6.s6_addr32[1] != 0x0U));
++    return (MayUseCompactScopeIds(in6) && (zetasql_wasi::in6_addr32(in6, 1) != 0x0U));
+   }
+ 
+   // Constructor that also supports an IPv6 link-local address with a scope_id.
+@@ -214,7 +268,7 @@ class IPAddress {
+     if (ABSL_PREDICT_FALSE(MayUseScopeIds(addr_.addr6))) {
+       if (MayUseCompactScopeIds(addr_.addr6)) {
+         // May have been asked to explicitly overwrite one scope with another.
+-        addr_.addr6.s6_addr32[1] = htonl(scope_id);
++        zetasql_wasi::in6_addr32(addr_.addr6, 1) = htonl(scope_id);
+       } else if (scope_id != 0) {
+         ABSL_LOG(WARNING) << "Discarding scope_id; cannot be compactly stored.";
+       }
+@@ -233,10 +287,10 @@ class IPAddress {
+         ZETASQL_INTERNAL_UNALIGNED_LOAD64(&other.addr_.addr6.s6_addr32[2]);
+     return ((a1 ^ b1) | (a2 ^ b2)) == 0;
+ #else
+-    return addr_.addr6.s6_addr32[0] == other.addr_.addr6.s6_addr32[0] &&
+-           addr_.addr6.s6_addr32[1] == other.addr_.addr6.s6_addr32[1] &&
+-           addr_.addr6.s6_addr32[2] == other.addr_.addr6.s6_addr32[2] &&
+-           addr_.addr6.s6_addr32[3] == other.addr_.addr6.s6_addr32[3];
++    return zetasql_wasi::in6_addr32(addr_.addr6, 0) == zetasql_wasi::in6_addr32(other.addr_.addr6, 0) &&
++           zetasql_wasi::in6_addr32(addr_.addr6, 1) == zetasql_wasi::in6_addr32(other.addr_.addr6, 1) &&
++           zetasql_wasi::in6_addr32(addr_.addr6, 2) == zetasql_wasi::in6_addr32(other.addr_.addr6, 2) &&
++           zetasql_wasi::in6_addr32(addr_.addr6, 3) == zetasql_wasi::in6_addr32(other.addr_.addr6, 3);
+ #endif
+   }
+ 
+@@ -460,10 +514,10 @@ IPAddress UInt128ToIPAddress(absl::uint128 bigint);
+ inline absl::uint128 IPAddressToUInt128(const IPAddress& addr) {
+   struct in6_addr addr6 = addr.ipv6_address();
+   return absl::MakeUint128(
+-      static_cast<uint64_t>(ntohl(addr6.s6_addr32[0])) << 32 |
+-          static_cast<uint64_t>(ntohl(addr6.s6_addr32[1])),
+-      static_cast<uint64_t>(ntohl(addr6.s6_addr32[2])) << 32 |
+-          static_cast<uint64_t>(ntohl(addr6.s6_addr32[3])));
++      static_cast<uint64_t>(ntohl(zetasql_wasi::in6_addr32(addr6, 0))) << 32 |
++          static_cast<uint64_t>(ntohl(zetasql_wasi::in6_addr32(addr6, 1))),
++      static_cast<uint64_t>(ntohl(zetasql_wasi::in6_addr32(addr6, 2))) << 32 |
++          static_cast<uint64_t>(ntohl(zetasql_wasi::in6_addr32(addr6, 3))));
+ }
+ 
+ // Parse an IPv4 or IPv6 address in textual form to an IPAddress.
+-- 
+2.34.1
+

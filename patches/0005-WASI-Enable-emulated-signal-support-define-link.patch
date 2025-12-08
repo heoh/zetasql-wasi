@@ -1,0 +1,26 @@
+From: heoh <h0h6h2h5@gmail.com>
+Subject: [PATCH] WASI: Enable emulated signal support (define + link)
+
+WASI: define _WASI_EMULATED_SIGNAL and link wasm emulated signal library to fix ICU build error when compiling under wasm32-wasip1-threads
+---
+ .bazelrc | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/.bazelrc b/.bazelrc
+index 41d5dd7a..98b758b2 100644
+--- a/.bazelrc
++++ b/.bazelrc
+@@ -82,8 +82,10 @@ build:wasi --copt=-pthread
+ 
+ # WASI emulation libraries
+ build:wasi --copt=-D_WASI_EMULATED_MMAN
++build:wasi --copt=-D_WASI_EMULATED_SIGNAL
+ 
+ # Linker flags
+ build:wasi --linkopt=--target=wasm32-wasip1-threads
+ build:wasi --linkopt=-pthread
+ build:wasi --linkopt=-lwasi-emulated-mman
++build:wasi --linkopt=-lwasi-emulated-signal
+-- 
+2.34.1
+
