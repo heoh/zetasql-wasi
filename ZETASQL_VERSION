@@ -1,0 +1,3 @@
+# ZetaSQL commit hash to build against
+# Update this to upgrade ZetaSQL version
+COMMIT_HASH=c3f174111ccfbd6b5b0b112925ef962a3a5c8d47
