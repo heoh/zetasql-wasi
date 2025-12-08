@@ -1,0 +1,215 @@
+From: heoh <h0h6h2h5@gmail.com>
+Subject: [PATCH] Confiugure wasm32-wasi target
+
+---
+ .bazelrc                                      |  13 ++
+ MODULE.bazel                                  |   8 ++
+ zetasql/tools/execute_query/BUILD             |  26 ++++
+ .../tools/execute_query/execute_query_wasi.cc | 121 ++++++++++++++++++
+ 4 files changed, 168 insertions(+)
+ create mode 100644 zetasql/tools/execute_query/execute_query_wasi.cc
+
+diff --git a/.bazelrc b/.bazelrc
+index 2e9e26b8..25b98fc4 100644
+--- a/.bazelrc
++++ b/.bazelrc
+@@ -64,3 +64,16 @@ build:darwin --cxxopt="-mmacosx-version-min=11.0"
+ build --cxxopt=-std=c++20 --host_cxxopt=-std=c++20 --config=clang --java_runtime_version=remotejdk_11
+ run --cxxopt=-std=c++20 --host_cxxopt=-std=c++20 --config=clang --java_runtime_version=remotejdk_11
+ test --cxxopt=-std=c++20 --host_cxxopt=-std=c++20 --config=clang --java_runtime_version=remotejdk_11
++
++################################################################################
++# WASI (WebAssembly System Interface) Build Configuration
++################################################################################
++
++# Platform and feature flags
++build:wasi --platforms=@wasi_toolchain//:wasm32-wasi
++build:wasi --features=-layering_check
++build:wasi --features=no_legacy_features
++build:wasi --noincompatible_validate_top_level_header_inclusions
++
++# Compiler flags
++build:wasi --copt=-fno-exceptions
+diff --git a/MODULE.bazel b/MODULE.bazel
+index a135ae8f..cdea9ee9 100644
+--- a/MODULE.bazel
++++ b/MODULE.bazel
+@@ -131,3 +131,11 @@ llvm.toolchain(
+ use_repo(llvm, "llvm_toolchain")
+ 
+ register_toolchains("@llvm_toolchain//:all")
++
++# WASI SDK for wasm32-wasi target
++bazel_dep(name = "zetasql_wasi_toolchain", version = "0.0.1", repo_name = "wasi_toolchain")
++local_path_override(
++    module_name = "zetasql_wasi_toolchain",
++    path = "../../toolchain",
++)
++register_toolchains("@wasi_toolchain//:wasi_cc_toolchain")
+diff --git a/zetasql/tools/execute_query/BUILD b/zetasql/tools/execute_query/BUILD
+index 1190c383..73f577b7 100644
+--- a/zetasql/tools/execute_query/BUILD
++++ b/zetasql/tools/execute_query/BUILD
+@@ -139,6 +139,32 @@ cc_binary(
+     ],
+ )
+ 
++# WASI (WebAssembly) build of execute_query
++# Build with: bazel build --config=wasi //zetasql/tools/execute_query:execute_query_wasi
++cc_binary(
++    name = "execute_query_wasi",
++    srcs = [
++        "execute_query_wasi.cc",
++    ],
++    linkopts = ["-mexec-model=reactor"],
++    target_compatible_with = [
++        "@platforms//os:wasi",
++        "@platforms//cpu:wasm32",
++    ],
++    visibility = ["//visibility:public"],
++    deps = [
++        ":execute_query_tool",
++        ":execute_query_writer",
++        "//zetasql/base:status",
++        "@com_google_absl//absl/flags:flag",
++        "@com_google_absl//absl/flags:parse",
++        "@com_google_absl//absl/flags:usage",
++        "@com_google_absl//absl/log:initialize",
++        "@com_google_absl//absl/status",
++        "@com_google_absl//absl/strings",
++    ],
++)
++
+ cc_library(
+     name = "execute_query_prompt",
+     srcs = ["execute_query_prompt.cc"],
+diff --git a/zetasql/tools/execute_query/execute_query_wasi.cc b/zetasql/tools/execute_query/execute_query_wasi.cc
+new file mode 100644
+index 00000000..9f8a8deb
+--- /dev/null
++++ b/zetasql/tools/execute_query/execute_query_wasi.cc
+@@ -0,0 +1,121 @@
++//
++// Copyright 2025 Google LLC
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//      http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++//
++
++// WASI (WebAssembly System Interface) entry point for execute_query.
++// This is built as a reactor module, allowing clients to load the WASM module
++// and call exported functions multiple times.
++//
++// Exported functions:
++//   - wasm_malloc(size_t size) -> void*: Allocate memory
++//   - wasm_free(void* ptr): Free memory
++//   - execute_query_main(int argc, char** argv) -> int: CLI-compatible entry point
++//
++// Usage from client:
++//   1. Call _initialize() once after loading the module
++//   2. Allocate memory for argv strings using wasm_malloc()
++//   3. Call execute_query_main(argc, argv)
++//   4. Free memory using wasm_free()
++//   5. Repeat steps 2-4 for subsequent queries
++
++#include <cstddef>
++#include <cstdlib>
++#include <iostream>
++#include <memory>
++#include <string>
++#include <vector>
++
++#include "zetasql/tools/execute_query/execute_query_tool.h"
++#include "zetasql/tools/execute_query/execute_query_writer.h"
++#include "absl/flags/flag.h"
++#include "absl/flags/parse.h"
++#include "absl/flags/usage.h"
++#include "absl/log/initialize.h"
++#include "absl/status/status.h"
++#include "absl/strings/str_join.h"
++
++// WASM export attribute macro
++#ifdef __wasm__
++#define WASM_EXPORT(name) __attribute__((export_name(#name)))
++#else
++#define WASM_EXPORT(name)
++#endif
++
++namespace zetasql {
++namespace {
++
++absl::Status RunTool(const std::vector<std::string>& args) {
++  ExecuteQueryConfig config;
++
++  ZETASQL_RETURN_IF_ERROR(InitializeExecuteQueryConfig(config));
++
++  ZETASQL_ASSIGN_OR_RETURN(std::unique_ptr<ExecuteQueryWriter> writer,
++                   MakeWriterFromFlags(config, std::cout));
++
++  const std::string sql = absl::StrJoin(args, " ");
++  return ExecuteQuery(sql, config, *writer);
++}
++}  // namespace
++}  // namespace zetasql
++
++// C linkage wrapper functions for WASM export
++extern "C" {
++
++// Memory allocation function for clients to allocate memory in WASM linear memory
++WASM_EXPORT(wasm_malloc)
++void* wasm_malloc(size_t size) {
++  return malloc(size);
++}
++
++// Memory deallocation function for clients to free memory in WASM linear memory
++WASM_EXPORT(wasm_free)
++void wasm_free(void* ptr) {
++  free(ptr);
++}
++
++// Main entry point with CLI-compatible interface
++// Returns 0 on success, non-zero on error
++WASM_EXPORT(execute_query_main)
++int execute_query_main(int argc, char** argv) {
++  static bool initialized = false;
++  static const char kUsage[] = "Usage: execute_query \"<sql>\"\n";
++
++  if (!initialized) {
++    absl::SetProgramUsageMessage(kUsage);
++    absl::InitializeLog();
++    initialized = true;
++  }
++
++  std::vector<std::string> args;
++
++  {
++    std::vector<char*> remaining_args = absl::ParseCommandLine(argc, argv);
++    args.assign(remaining_args.cbegin() + 1, remaining_args.cend());
++  }
++
++  if (args.empty()) {
++    std::cerr << kUsage << "Pass --help for a full list of flags.\n";
++    return 1;
++  }
++
++  if (const absl::Status status = zetasql::RunTool(args); status.ok()) {
++    return 0;
++  } else {
++    std::cerr << status.message() << '\n';
++    return 1;
++  }
++}
++
++}  // extern "C"
+-- 
+2.34.1
+

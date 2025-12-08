@@ -1,0 +1,18 @@
+module(name = "zetasql_wasi_toolchain", version = "0.0.1")
+
+bazel_dep(name = "rules_cc", version = "0.2.8")
+bazel_dep(name = "platforms", version = "1.0.0")
+
+# Fetch WASI SDK and generate absolute paths for the toolchain.
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "wasi_sdk",
+    build_file = "//:wasi_sdk.BUILD",
+    sha256 = "c6c38aab56e5de88adf6c1ebc9c3ae8da72f88ec2b656fb024eda8d4167a0bc5",
+    strip_prefix = "wasi-sdk-24.0-x86_64-linux",
+    url = "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-x86_64-linux.tar.gz",
+)
+
+wasi_sdk_toolchain = use_repo_rule("//:wasi_sdk_paths.bzl", "wasi_sdk_toolchain")
+wasi_sdk_toolchain(name = "wasi_sdk_paths")
