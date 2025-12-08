@@ -53,6 +53,14 @@ Now you can build the project with your changes applied. From the `_work/zetasql
 bazel build --config=wasi //zetasql/tools/execute_query:execute_query_wasi
 ```
 
+To build the optimized WASI binary (using `wasm-opt`):
+
+```bash
+bazel build --config=wasi //zetasql/tools/execute_query:execute_query_wasi_opt
+```
+
+The optimized output binary will be located at `bazel-bin/zetasql/tools/execute_query/execute_query_wasi.opt.wasm`.
+
 ## Updating ZetaSQL Version
 
 1. Update the commit hash in `ZETASQL_VERSION`.
