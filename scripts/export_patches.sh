@@ -2,8 +2,8 @@
 set -e
 
 # Get the directory of the script
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-ROOT_DIR="${SCRIPT_DIR}/.."
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+ROOT_DIR=$(realpath "${SCRIPT_DIR}/..")
 WORK_DIR="${ROOT_DIR}/_work/zetasql"
 PATCHES_DIR="${ROOT_DIR}/patches"
 
