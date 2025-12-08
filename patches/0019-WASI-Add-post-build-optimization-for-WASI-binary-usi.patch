@@ -1,0 +1,46 @@
+From: heoh <h0h6h2h5@gmail.com>
+Subject: [PATCH] WASI: Add post-build optimization for WASI binary using
+ wasm-opt
+
+---
+ MODULE.bazel                      |  3 +++
+ zetasql/tools/execute_query/BUILD | 12 ++++++++++++
+ 2 files changed, 15 insertions(+)
+
+diff --git a/MODULE.bazel b/MODULE.bazel
+index cdea9ee9..8ffdce8b 100644
+--- a/MODULE.bazel
++++ b/MODULE.bazel
+@@ -139,3 +139,6 @@ local_path_override(
+     path = "../../toolchain",
+ )
+ register_toolchains("@wasi_toolchain//:wasi_cc_toolchain")
++
++binaryen_ext = use_extension("@wasi_toolchain//:binaryen.bzl", "binaryen_extension")
++use_repo(binaryen_ext, "binaryen")
+diff --git a/zetasql/tools/execute_query/BUILD b/zetasql/tools/execute_query/BUILD
+index 73f577b7..25a9f17c 100644
+--- a/zetasql/tools/execute_query/BUILD
++++ b/zetasql/tools/execute_query/BUILD
+@@ -165,6 +165,18 @@ cc_binary(
+     ],
+ )
+ 
++# Post-build optimization: run wasm-opt on the produced WASI binary.
++# This genrule uses `wasm-opt` from the @binaryen repository.
++# It takes the `:execute_query_wasi` output and writes an optimized wasm file
++# into the Bazel output tree.
++genrule(
++    name = "execute_query_wasi_opt",
++    srcs = [":execute_query_wasi"],
++    outs = ["execute_query_wasi.opt.wasm"],
++    tools = ["@binaryen//:wasm_opt"],
++    cmd = "$(location @binaryen//:wasm_opt) -O3 --enable-threads --enable-bulk-memory --enable-mutable-globals $(location :execute_query_wasi) -o $@",
++)
++
+ cc_library(
+     name = "execute_query_prompt",
+     srcs = ["execute_query_prompt.cc"],
+-- 
+2.34.1
+
