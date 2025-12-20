@@ -1,0 +1,15 @@
+# Test dependencies for ZetaSQL WASI
+# Install with: pip install -r requirements-test.txt
+
+# WASM runtime
+wasmtime>=17.0.0
+
+# Protocol Buffers
+protobuf>=4.25.0
+
+# Testing framework
+pytest>=7.0.0
+pytest-timeout>=2.1.0
+
+# Timezone data
+tzdata>=2024.1

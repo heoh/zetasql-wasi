@@ -1,1 +1,18 @@
 bazel-*
+build/
+release/
+
+# Python virtual environment
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Generated protobuf code
+tests/generated_pb/
+
+# Pytest cache
+.pytest_cache/
+.coverage
+htmlcov/

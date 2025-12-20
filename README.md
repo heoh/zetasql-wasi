@@ -47,22 +47,162 @@ This will:
 
 ### 4. Build
 
-Now you can build the project with your changes applied. From the `_work/zetasql` directory:
+Build the WASM binary and proto files:
 
 ```bash
-bazel build --config=wasi //zetasql/tools/execute_query:execute_query_wasi
+./scripts/build.sh
 ```
 
-To build the optimized WASI binary (using `wasm-opt`):
+This will create the `build/` directory with:
+- `zetasql_local_service_wasi.wasm` - WASM binary
+- `zetasql_local_service_wasi.opt.wasm` - Optimized WASM binary
+- `zetasql_local_service_proto/` - Proto file collection
+
+### 5. Test
+
+Run tests to verify the WASM binary works correctly:
 
 ```bash
-bazel build --config=wasi //zetasql/tools/execute_query:execute_query_wasi_opt
+./scripts/test.sh
 ```
 
-The optimized output binary will be located at `bazel-bin/zetasql/tools/execute_query/execute_query_wasi.opt.wasm`.
+This will:
+- Create a Python virtual environment (`.venv/`) if it doesn't exist
+- Install test dependencies
+- Generate Python protobuf code
+- Run all tests using pytest
+
+The test suite validates:
+- Expression evaluation (literals, functions, parameters)
+- Query execution (SELECT, WHERE, JOIN, aggregations)
+- DML operations (INSERT, UPDATE, DELETE)
+- SQL analysis and parsing
+- SQL formatting and table extraction
+
+### 6. Prepare Release
+
+Create distribution-ready release artifacts:
+
+```bash
+./scripts/prepare_release.sh
+```
+
+This will create the `release/` directory with:
+- `zetasql_local_service_wasi.wasm` - Optimized WASM binary (renamed from build)
+- `zetasql_local_service_proto.tar.gz` - Proto file tarball
+- `*.sha256` - Checksum files
+
+## Build Output
+
+### Build Directory (`build/`)
+
+Intermediate build artifacts for development and testing:
+
+- **`zetasql_local_service_wasi.wasm`** - Standard WASM binary (~100-200MB)
+- **`zetasql_local_service_wasi.opt.wasm`** - Optimized WASM binary (~50-100MB, optimized with wasm-opt)
+- **`zetasql_local_service_proto/`** - Directory containing ~70 proto files
+
+### Release Directory (`release/`)
+
+Distribution-ready artifacts for end users:
+
+- **`zetasql_local_service_wasi.wasm`** - Optimized WASM binary
+- **`zetasql_local_service_proto.tar.gz`** - Proto file collection (tarball)
+- **`*.sha256`** - SHA256 checksum files
+
+See [docs/RELEASE_USAGE.md](docs/RELEASE_USAGE.md) for detailed usage instructions and guidance on creating language-specific wrapper packages.
+
+## Testing
+
+The project includes a comprehensive test suite that validates the WASM binary functionality.
+
+### Running Tests
+
+```bash
+./scripts/test.sh
+```
+
+The test script automatically:
+1. Checks for the built WASM binary
+2. Creates a Python virtual environment if needed
+3. Installs test dependencies
+4. Generates Python protobuf code
+5. Runs all tests with pytest
+
+### Test Requirements
+
+- Python 3.7+
+- protoc (Protocol Buffer compiler)
+- Built WASM binary (`build/zetasql_local_service_wasi.opt.wasm`)
+
+### Test Coverage
+
+The test suite covers:
+
+- **Expression Evaluation** (`test_expression.py`)
+  - Literals (integer, string, boolean) ✅
+  - Error handling (syntax errors, unknown functions) ✅
+  - Prepare/Evaluate/Unprepare workflow ✅
+  - ⚠️ Arithmetic and function operations require builtin function catalog
+
+- **Query Execution** (`test_query.py`)
+  - Simple SELECT with literals ✅
+  - Syntax error handling ✅
+  - ⚠️ Table queries require catalog registration
+  - ⚠️ Aggregate functions (COUNT, SUM, AVG, MIN, MAX) require builtin functions
+
+- **DML Operations** (`test_modify.py`)
+  - Error handling (unknown tables, type mismatches) ✅
+  - ⚠️ INSERT, UPDATE, DELETE require catalog with tables
+
+- **Analysis & Parsing** (`test_analyze.py`)
+  - SQL parsing (Parse RPC) ✅
+  - SQL analysis (Analyze RPC) ✅
+  - BuildSql from resolved AST ✅
+  - Parse-Analyze roundtrip ✅
+  - Error handling (syntax errors, unknown functions) ✅
+
+- **Formatting** (`test_format.py`)
+  - SQL formatting (FormatSql) ✅
+  - Table name extraction ✅
+  - Builtin functions retrieval ✅
+
+### Test Status
+
+**Current: 41 of 86 tests passing (48%)**
+
+- ✅ Core functionality: Parse, Analyze, Format, BuildSql
+- ✅ Basic expression literals and error handling
+- ✅ RPC error handling with proper RuntimeError exceptions
+- ⚠️ Limited: Operations requiring builtin functions or catalog registration
+
+**Note**: Tests requiring builtin function catalogs or table definitions currently fail.
+Future improvements will add catalog registration support for comprehensive testing.
+  - SQL analysis (Analyze RPC)
+  - Resolved AST generation
+
+- **Utilities** (`test_format.py`)
+  - SQL formatting (FormatSql)
+  - Table name extraction
+  - Builtin function queries
+
+### Running Specific Tests
+
+```bash
+# Run specific test file
+source .venv/bin/activate
+pytest tests/test_expression.py -v
+
+# Run specific test class
+pytest tests/test_query.py::TestBasicQueries -v
+
+# Run specific test
+pytest tests/test_expression.py::TestBasicExpressions::test_integer_literal -v
+```
 
 ## Updating ZetaSQL Version
 
 1. Update the commit hash in `ZETASQL_VERSION`.
 2. Run `./scripts/setup_dev.sh` to reset the workspace and attempt to re-apply patches.
 3. Resolve any merge conflicts in `_work/zetasql`, commit the fixes, and run `./scripts/export_patches.sh`.
+4. Rebuild with `./scripts/build.sh` and prepare release with `./scripts/prepare_release.sh`.
