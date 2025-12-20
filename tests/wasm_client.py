@@ -13,6 +13,11 @@ from typing import Optional, Any
 from wasmtime import Store, Module, Instance, Func, FuncType, ValType, Linker, WasiConfig
 
 
+# WASM constants
+WASM32_SIZE_T_BYTES = 4  # size_t is 4 bytes in wasm32
+WASM_NULL_PTR = 0  # nullptr in WASM is represented as 0
+
+
 class StatusCode(IntEnum):
     """absl::StatusCode enum values.
     
@@ -243,7 +248,7 @@ class WasmClient:
         request_ptr = self.allocate_bytes(request_size)
         
         # Allocate memory for response_size (output parameter)
-        response_size_ptr = self.allocate_bytes(4)  # size_t is 4 bytes in wasm32
+        response_size_ptr = self.allocate_bytes(WASM32_SIZE_T_BYTES)
         
         try:
             # Write request data
@@ -253,12 +258,12 @@ class WasmClient:
             response_ptr = method(self.store, request_ptr, request_size, response_size_ptr)
             
             # Check for nullptr (error case)
-            if response_ptr == 0:  # nullptr in WASM is 0
+            if response_ptr == WASM_NULL_PTR:
                 error_str = self.get_last_error()
                 raise ZetaSQLError.from_error_string(error_str)
             
             # Read response size from output parameter
-            response_size_bytes = self.read_bytes(response_size_ptr, 4)
+            response_size_bytes = self.read_bytes(response_size_ptr, WASM32_SIZE_T_BYTES)
             response_size = int.from_bytes(response_size_bytes, byteorder='little')
             
             # Read response data
