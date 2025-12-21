@@ -31,13 +31,13 @@ index 2e9e26b8..25b98fc4 100644
 +# Compiler flags
 +build:wasi --copt=-fno-exceptions
 diff --git a/MODULE.bazel b/MODULE.bazel
-index a135ae8f..cdea9ee9 100644
+index e41fd7d8..0aac1132 100644
 --- a/MODULE.bazel
 +++ b/MODULE.bazel
-@@ -131,3 +131,11 @@ llvm.toolchain(
- use_repo(llvm, "llvm_toolchain")
- 
- register_toolchains("@llvm_toolchain//:all")
+@@ -135,3 +135,11 @@ register_toolchains(
+     "@llvm_toolchain//:all",
+     dev_dependency = True,
+ )
 +
 +# WASI SDK for wasm32-wasi target
 +bazel_dep(name = "zetasql_wasi_toolchain", version = "0.0.1", repo_name = "wasi_toolchain")
@@ -47,13 +47,14 @@ index a135ae8f..cdea9ee9 100644
 +)
 +register_toolchains("@wasi_toolchain//:wasi_cc_toolchain")
 diff --git a/zetasql/tools/execute_query/BUILD b/zetasql/tools/execute_query/BUILD
-index 1190c383..73f577b7 100644
+index 8cb8fbf9..52db21fa 100644
 --- a/zetasql/tools/execute_query/BUILD
 +++ b/zetasql/tools/execute_query/BUILD
-@@ -139,6 +139,32 @@ cc_binary(
-     ],
+@@ -653,3 +653,29 @@ bzl_library(
+     name = "build_rules_bzl",
+     srcs = ["build_rules.bzl"],
  )
- 
++
 +# WASI (WebAssembly) build of execute_query
 +# Build with: bazel build --config=wasi //zetasql/tools/execute_query:execute_query_wasi
 +cc_binary(
@@ -79,10 +80,6 @@ index 1190c383..73f577b7 100644
 +        "@com_google_absl//absl/strings",
 +    ],
 +)
-+
- cc_library(
-     name = "execute_query_prompt",
-     srcs = ["execute_query_prompt.cc"],
 diff --git a/zetasql/tools/execute_query/execute_query_wasi.cc b/zetasql/tools/execute_query/execute_query_wasi.cc
 new file mode 100644
 index 00000000..9a0b03c0
