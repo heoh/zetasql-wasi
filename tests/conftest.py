@@ -16,6 +16,9 @@ sys.path.insert(0, GENERATED_PB_PATH)
 sys.path.insert(0, TESTS_PATH)
 
 from wasm_client import WasmClient, ZetaSQLError, StatusCode
+from zetasql.local_service import local_service_pb2
+from zetasql.proto import simple_catalog_pb2
+from zetasql.public import options_pb2, type_pb2, value_pb2
 
 
 @pytest.fixture(scope="session")
@@ -38,8 +41,6 @@ def wasm_path():
 @pytest.fixture(scope="session")
 def analyzer_options():
     """Create default analyzer options with all language features enabled."""
-    from zetasql.local_service import local_service_pb2
-    from zetasql.public import options_pb2
     
     # Create a PrepareRequest to access AnalyzerOptionsProto
     request = local_service_pb2.PrepareRequest()
@@ -81,8 +82,6 @@ def wasm_client(wasm_path):
 @pytest.fixture
 def simple_catalog():
     """Create a simple catalog with test table."""
-    from zetasql.proto import simple_catalog_pb2
-    from zetasql.public import type_pb2
     
     catalog = simple_catalog_pb2.SimpleCatalogProto()
     
@@ -109,7 +108,6 @@ def simple_catalog():
 @pytest.fixture
 def table_data():
     """Create sample table data."""
-    from zetasql.public import value_pb2
     
     rows = []
     
@@ -151,8 +149,6 @@ def table_data():
 @pytest.fixture
 def prepare_expression_request(analyzer_options):
     """Create a PrepareExpression request factory with builtin functions enabled."""
-    from zetasql.local_service import local_service_pb2
-    from zetasql.proto import simple_catalog_pb2
     
     def factory(sql: str):
         request = local_service_pb2.PrepareRequest()
@@ -175,8 +171,6 @@ def prepare_expression_request(analyzer_options):
 @pytest.fixture
 def prepare_query_request(analyzer_options):
     """Create a PrepareQuery request factory with builtin functions enabled."""
-    from zetasql.local_service import local_service_pb2
-    from zetasql.proto import simple_catalog_pb2
     
     def factory(sql: str, catalog=None):
         request = local_service_pb2.PrepareQueryRequest()
@@ -207,7 +201,6 @@ def prepare_query_request(analyzer_options):
 @pytest.fixture
 def evaluate_request():
     """Create an Evaluate request factory."""
-    from zetasql.local_service import local_service_pb2
     
     def factory(prepared_id: int):
         request = local_service_pb2.EvaluateRequest()

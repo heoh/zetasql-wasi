@@ -6,6 +6,7 @@ Tests for PrepareModify, EvaluateModify, and UnprepareModify RPC methods.
 
 import pytest
 from wasm_client import ZetaSQLError
+from zetasql.local_service import local_service_pb2
 
 
 class TestInsertStatements:
@@ -13,7 +14,6 @@ class TestInsertStatements:
     
     def test_insert_prepare(self, wasm_client, analyzer_options, simple_catalog):
         """Test preparing an INSERT statement."""
-        from zetasql.local_service import local_service_pb2
         
         request = local_service_pb2.PrepareModifyRequest()
         request.sql = "INSERT INTO TestTable VALUES ('string_3', FALSE, 456)"
@@ -32,7 +32,6 @@ class TestInsertStatements:
     
     def test_insert_with_column_names(self, wasm_client, analyzer_options, simple_catalog):
         """Test INSERT with explicit column names."""
-        from zetasql.local_service import local_service_pb2
         
         request = local_service_pb2.PrepareModifyRequest()
         request.sql = "INSERT INTO TestTable (column_str, column_bool, column_int) VALUES ('test', TRUE, 999)"
@@ -55,7 +54,6 @@ class TestUpdateStatements:
     
     def test_update_prepare(self, wasm_client, analyzer_options, simple_catalog):
         """Test preparing an UPDATE statement."""
-        from zetasql.local_service import local_service_pb2
         
         request = local_service_pb2.PrepareModifyRequest()
         request.sql = "UPDATE TestTable SET column_int = 999 WHERE column_str = 'string_1'"
@@ -74,7 +72,6 @@ class TestUpdateStatements:
     
     def test_update_multiple_columns(self, wasm_client, analyzer_options, simple_catalog):
         """Test UPDATE with multiple columns."""
-        from zetasql.local_service import local_service_pb2
         
         request = local_service_pb2.PrepareModifyRequest()
         request.sql = "UPDATE TestTable SET column_int = 500, column_bool = FALSE WHERE column_str = 'string_1'"
@@ -93,7 +90,6 @@ class TestUpdateStatements:
     
     def test_update_no_where(self, wasm_client, analyzer_options, simple_catalog):
         """Test UPDATE without WHERE clause is rejected."""
-        from zetasql.local_service import local_service_pb2
         import pytest
         
         request = local_service_pb2.PrepareModifyRequest()
@@ -116,7 +112,6 @@ class TestDeleteStatements:
     
     def test_delete_prepare(self, wasm_client, analyzer_options, simple_catalog):
         """Test preparing a DELETE statement."""
-        from zetasql.local_service import local_service_pb2
         
         request = local_service_pb2.PrepareModifyRequest()
         request.sql = "DELETE FROM TestTable WHERE column_bool = FALSE"
@@ -135,7 +130,6 @@ class TestDeleteStatements:
     
     def test_delete_with_complex_where(self, wasm_client, analyzer_options, simple_catalog):
         """Test DELETE with complex WHERE clause."""
-        from zetasql.local_service import local_service_pb2
         
         request = local_service_pb2.PrepareModifyRequest()
         request.sql = "DELETE FROM TestTable WHERE column_int > 200 AND column_bool = TRUE"
@@ -158,7 +152,6 @@ class TestPrepareEvaluateWorkflow:
     
     def test_insert_workflow(self, wasm_client, analyzer_options, simple_catalog):
         """Test complete workflow for INSERT."""
-        from zetasql.local_service import local_service_pb2
         
         # Evaluate with SQL + catalog + table data (not using prepared statement)
         eval_req = local_service_pb2.EvaluateModifyRequest()
@@ -191,7 +184,6 @@ class TestErrorHandling:
     
     def test_insert_type_mismatch(self, wasm_client, analyzer_options, simple_catalog):
         """Test INSERT with type mismatch."""
-        from zetasql.local_service import local_service_pb2
         
         import pytest
         request = local_service_pb2.PrepareModifyRequest()
@@ -205,7 +197,6 @@ class TestErrorHandling:
     
     def test_update_unknown_column(self, wasm_client, analyzer_options, simple_catalog):
         """Test UPDATE with unknown column."""
-        from zetasql.local_service import local_service_pb2
         import pytest
         
         request = local_service_pb2.PrepareModifyRequest()
@@ -218,7 +209,6 @@ class TestErrorHandling:
     
     def test_delete_unknown_table(self, wasm_client, analyzer_options):
         """Test DELETE from unknown table."""
-        from zetasql.local_service import local_service_pb2
         import pytest
         
         request = local_service_pb2.PrepareModifyRequest()

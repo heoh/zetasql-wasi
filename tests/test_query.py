@@ -10,6 +10,7 @@ from fixtures.sql_samples import (
     TABLE_QUERIES,
     AGGREGATE_QUERIES,
 )
+from zetasql.local_service import local_service_pb2
 
 
 class TestBasicQueries:
@@ -144,8 +145,6 @@ class TestQueryWithTableData:
     
     def test_evaluate_with_data(self, wasm_client, analyzer_options, simple_catalog):
         """Test evaluating a query with table data."""
-        from zetasql.local_service import local_service_pb2
-        from zetasql.public import value_pb2
         
         # Evaluate with SQL + catalog + table data (not using prepared statement)
         eval_req = local_service_pb2.EvaluateQueryRequest()
@@ -182,7 +181,6 @@ class TestPrepareEvaluateWorkflow:
     
     def test_complete_workflow(self, wasm_client, prepare_query_request):
         """Test complete prepare-evaluate-unprepare workflow."""
-        from zetasql.local_service import local_service_pb2
         
         # Prepare
         prepare_req = prepare_query_request("SELECT 1 AS one, 2 AS two")

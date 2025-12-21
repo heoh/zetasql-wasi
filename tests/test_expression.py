@@ -12,6 +12,9 @@ from fixtures.sql_samples import (
     NUMERIC_FUNCTIONS,
     CONDITIONAL_EXPRESSIONS,
 )
+from zetasql.local_service import local_service_pb2
+from zetasql.proto import simple_catalog_pb2
+from zetasql.public import type_pb2
 
 
 class TestBasicExpressions:
@@ -103,7 +106,6 @@ class TestRandomFunction:
     
     def test_rand_execute(self, wasm_client, prepare_expression_request):
         """Test that RAND() can be executed and returns valid values."""
-        from zetasql.local_service import local_service_pb2
         
         # Prepare RAND()
         prepare_req = prepare_expression_request("RAND()")
@@ -135,7 +137,6 @@ class TestRandomFunction:
     
     def test_rand_in_expression(self, wasm_client, prepare_expression_request):
         """Test RAND() in arithmetic expressions."""
-        from zetasql.local_service import local_service_pb2
         
         # Test RAND() * 100 (scale to 0-100 range)
         prepare_req = prepare_expression_request("RAND() * 100")
@@ -164,7 +165,6 @@ class TestPrepareEvaluateWorkflow:
     
     def test_prepare_evaluate_unprepare(self, wasm_client, prepare_expression_request):
         """Test complete prepare-evaluate-unprepare workflow."""
-        from zetasql.local_service import local_service_pb2
         
         # Step 1: Prepare
         prepare_req = prepare_expression_request("1 + 2")
@@ -187,7 +187,6 @@ class TestPrepareEvaluateWorkflow:
     
     def test_multiple_evaluations(self, wasm_client, prepare_expression_request):
         """Test evaluating the same prepared expression multiple times."""
-        from zetasql.local_service import local_service_pb2
         
         # Prepare once
         prepare_req = prepare_expression_request("1 + 2")
@@ -211,9 +210,6 @@ class TestParameterizedExpressions:
     
     def test_integer_parameter(self, wasm_client, analyzer_options):
         """Test expression with integer parameter."""
-        from zetasql.local_service import local_service_pb2
-        from zetasql.public import value_pb2, type_pb2
-        from zetasql.proto import simple_catalog_pb2
         
         # Prepare with parameter
         prepare_req = local_service_pb2.PrepareRequest()
@@ -252,9 +248,6 @@ class TestParameterizedExpressions:
     
     def test_string_parameter(self, wasm_client, analyzer_options):
         """Test expression with string parameter."""
-        from zetasql.local_service import local_service_pb2
-        from zetasql.public import value_pb2, type_pb2
-        from zetasql.proto import simple_catalog_pb2
         
         prepare_req = local_service_pb2.PrepareRequest()
         prepare_req.sql = "@name"

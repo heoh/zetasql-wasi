@@ -7,6 +7,8 @@ Tests for FormatSql, ExtractTableNames, and related utility RPC methods.
 import pytest
 from wasm_client import ZetaSQLError
 from fixtures.sql_samples import FORMAT_TEST_CASES, EXTRACT_TABLE_CASES
+from zetasql.local_service import local_service_pb2
+from zetasql.proto import options_pb2
 
 
 class TestFormatSql:
@@ -14,7 +16,6 @@ class TestFormatSql:
     
     def test_format_simple_query(self, wasm_client):
         """Test formatting a simple query."""
-        from zetasql.local_service import local_service_pb2
         
         request = local_service_pb2.FormatSqlRequest()
         request.sql = "select   foo,bar from some_table"
@@ -28,7 +29,6 @@ class TestFormatSql:
     
     def test_format_messy_whitespace(self, wasm_client):
         """Test formatting SQL with messy whitespace."""
-        from zetasql.local_service import local_service_pb2
         
         request = local_service_pb2.FormatSqlRequest()
         request.sql = "SELECT    *    FROM    table1    WHERE    a   >   10"
@@ -40,7 +40,6 @@ class TestFormatSql:
     
     def test_format_complex_query(self, wasm_client):
         """Test formatting a complex query."""
-        from zetasql.local_service import local_service_pb2
         
         request = local_service_pb2.FormatSqlRequest()
         request.sql = "select t1.a,t2.b from table1 t1 join table2 t2 on t1.id=t2.id where t1.active=true"
@@ -53,7 +52,6 @@ class TestFormatSql:
     @pytest.mark.parametrize("name,sql", FORMAT_TEST_CASES.items())
     def test_format_various_cases(self, wasm_client, name, sql):
         """Test formatting various SQL cases."""
-        from zetasql.local_service import local_service_pb2
         
         request = local_service_pb2.FormatSqlRequest()
         request.sql = sql
@@ -65,7 +63,6 @@ class TestFormatSql:
     
     def test_format_invalid_sql(self, wasm_client):
         """Test formatting invalid SQL."""
-        from zetasql.local_service import local_service_pb2
         
         request = local_service_pb2.FormatSqlRequest()
         request.sql = "SELECT * FORM table1"  # Syntax error
@@ -86,7 +83,6 @@ class TestExtractTableNames:
     
     def test_extract_single_table(self, wasm_client):
         """Test extracting table name from simple query."""
-        from zetasql.local_service import local_service_pb2
         
         request = local_service_pb2.ExtractTableNamesFromStatementRequest()
         request.sql_statement = "SELECT * FROM users"
@@ -98,7 +94,6 @@ class TestExtractTableNames:
     
     def test_extract_multiple_tables(self, wasm_client):
         """Test extracting multiple table names."""
-        from zetasql.local_service import local_service_pb2
         
         request = local_service_pb2.ExtractTableNamesFromStatementRequest()
         request.sql_statement = "SELECT * FROM users, orders WHERE users.id = orders.user_id"
@@ -111,7 +106,6 @@ class TestExtractTableNames:
     
     def test_extract_from_join(self, wasm_client):
         """Test extracting table names from JOIN query."""
-        from zetasql.local_service import local_service_pb2
         
         request = local_service_pb2.ExtractTableNamesFromStatementRequest()
         request.sql_statement = "SELECT * FROM users JOIN orders ON users.id = orders.user_id"
@@ -123,7 +117,6 @@ class TestExtractTableNames:
     
     def test_extract_qualified_name(self, wasm_client):
         """Test extracting qualified table name."""
-        from zetasql.local_service import local_service_pb2
         
         request = local_service_pb2.ExtractTableNamesFromStatementRequest()
         request.sql_statement = "SELECT * FROM mydb.myschema.users"
@@ -135,7 +128,6 @@ class TestExtractTableNames:
     
     def test_extract_from_subquery(self, wasm_client):
         """Test extracting table names from subquery."""
-        from zetasql.local_service import local_service_pb2
         
         request = local_service_pb2.ExtractTableNamesFromStatementRequest()
         request.sql_statement = "SELECT * FROM (SELECT * FROM users) AS u"
@@ -149,7 +141,6 @@ class TestExtractTableNames:
     @pytest.mark.parametrize("name,sql", EXTRACT_TABLE_CASES.items())
     def test_extract_various_cases(self, wasm_client, name, sql):
         """Test extracting table names from various SQL patterns."""
-        from zetasql.local_service import local_service_pb2
         
         request = local_service_pb2.ExtractTableNamesFromStatementRequest()
         request.sql_statement = sql
@@ -165,7 +156,6 @@ class TestGetBuiltinFunctions:
     
     def test_get_builtin_functions(self, wasm_client, analyzer_options):
         """Test retrieving builtin functions."""
-        from zetasql.proto import options_pb2
         
         # Use ZetaSQLBuiltinFunctionOptionsProto as request
         request = options_pb2.ZetaSQLBuiltinFunctionOptionsProto()
