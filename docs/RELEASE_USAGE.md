@@ -54,12 +54,6 @@ sha256sum -c *.sha256
 - **Threads**: Thread support enabled (wasm32-threads).
 - **Environment**: Optional timezone support via `/usr/share/zoneinfo` mapping.
 
-## Version Information
-
-- **ZetaSQL Version**: See `ZETASQL_VERSION` in project root.
-- **Patches Applied**: 20 WASI-specific patches (see `patches/` directory).
-- **Build Process**: Built with `scripts/build.sh` + `scripts/prepare_release.sh`.
-
 ## License
 
 ZetaSQL is licensed under Apache License 2.0. See the upstream repository for details:
