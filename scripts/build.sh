@@ -41,7 +41,7 @@ cp bazel-bin/zetasql/local_service/local_service_wasi.opt.wasm $BUILD_DIR/zetasq
 # Step 4: Build generated proto files
 echo ""
 echo "Step 4/5: Building generated proto files..."
-bazel build //zetasql/parser:parse_tree //zetasql/resolved_ast:resolved_ast
+bazel build --config=wasi //zetasql/parser:parse_tree //zetasql/resolved_ast:resolved_ast
 
 # Step 5: Collect proto files
 echo ""
