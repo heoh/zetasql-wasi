@@ -7,10 +7,10 @@ Subject: [PATCH] WASI: Skip 64-bit pointer static_assert for WASI/Emscripten
  1 file changed, 5 insertions(+), 5 deletions(-)
 
 diff --git a/zetasql/public/value_inl.h b/zetasql/public/value_inl.h
-index 8643f2cc..1375ceab 100644
+index 35d7108c..547299af 100644
 --- a/zetasql/public/value_inl.h
 +++ b/zetasql/public/value_inl.h
-@@ -1133,11 +1133,11 @@ class Value::Metadata::Content {
+@@ -1136,11 +1136,11 @@ class Value::Metadata::Content {
        static_assert(false,
                      "Platform is not supported: neither big nor little endian");
  #endif
