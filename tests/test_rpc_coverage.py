@@ -34,19 +34,12 @@ def get_proto_rpc_methods():
 
 
 def rpc_to_wasm_name(rpc_name):
-    """Convert RPC name to WASM export name (CamelCase -> wasm_snake_case)."""
-    # Special cases for shortened WASM names
-    special_cases = {
-        'ExtractTableNamesFromStatement': 'wasm_extract_table_names',
-        'ExtractTableNamesFromNextStatement': 'wasm_extract_table_names_next',
-    }
+    """Convert RPC name to WASM export name.
     
-    if rpc_name in special_cases:
-        return special_cases[rpc_name]
-    
-    # Insert underscore before capital letters, convert to lowercase
-    snake = re.sub('([A-Z])', r'_\1', rpc_name).lower().lstrip('_')
-    return f'wasm_{snake}'
+    Format: ZetaSqlLocalService_{RpcName}
+    Example: PrepareQuery -> ZetaSqlLocalService_PrepareQuery
+    """
+    return f'ZetaSqlLocalService_{rpc_name}'
 
 
 def get_wasm_exports(wasm_client):
@@ -142,9 +135,8 @@ class TestRPCSmoke:
     def test_lenient_format_sql_smoke(self, wasm_client):
         """LenientFormatSql RPC accepts minimal input."""
         request = local_service_pb2.FormatSqlRequest(sql="select 1")
-        # Note: lenient_format_sql is implemented as wasm_lenient_format_sql
-        # Call via RPC method directly
-        response_data = wasm_client.call_rpc_method("lenient_format_sql", request.SerializeToString())
+        # Call via RPC method directly with correct name
+        response_data = wasm_client.call_rpc_method("LenientFormatSql", request.SerializeToString())
         response = local_service_pb2.FormatSqlResponse()
         response.ParseFromString(response_data)
         assert response.sql
@@ -214,7 +206,7 @@ class TestRPCSmoke:
         )
         # May fail with invalid descriptor, but proves RPC is callable
         try:
-            response_data = wasm_client.call_rpc_method("get_table_from_proto", request.SerializeToString())
+            response_data = wasm_client.call_rpc_method("GetTableFromProto", request.SerializeToString())
             response = local_service_pb2.TableFromProtoResponse()
             response.ParseFromString(response_data)
             assert response is not None
@@ -226,7 +218,7 @@ class TestRPCSmoke:
         from zetasql.proto import options_pb2
         request = options_pb2.LanguageOptionsProto()
         # Call via RPC method directly
-        response_data = wasm_client.call_rpc_method("get_language_options", request.SerializeToString())
+        response_data = wasm_client.call_rpc_method("GetLanguageOptions", request.SerializeToString())
         response = options_pb2.LanguageOptionsProto()
         response.ParseFromString(response_data)
         assert response is not None

@@ -1,0 +1,407 @@
+From: heoh <h0h6h2h5@gmail.com>
+Subject: [PATCH] WASI: Rename exported functions for consistency and clarity
+
+---
+ zetasql/local_service/local_service_wasi.cc | 210 ++++++++++++--------
+ 1 file changed, 131 insertions(+), 79 deletions(-)
+
+diff --git a/zetasql/local_service/local_service_wasi.cc b/zetasql/local_service/local_service_wasi.cc
+index 6a6b2db0..2edd6d41 100644
+--- a/zetasql/local_service/local_service_wasi.cc
++++ b/zetasql/local_service/local_service_wasi.cc
+@@ -25,49 +25,53 @@
+ //            Error message available via wasm_get_last_error()
+ //   - Error codes map to absl::StatusCode
+ //
+-// Exported Functions:
++// Exported Functions (Naming: ZetaSqlLocalService_{RpcMethodName}):
+ //   Memory management:
+ //     - wasm_malloc(size) -> ptr
+ //     - wasm_free(ptr)
+ //     - wasm_get_last_error() -> error string ptr
++//     - wasm_get_last_error_size() -> size
++//
++//   All RPC methods follow consistent signature:
++//     void* Method(const void* request_ptr, size_t request_size, size_t* response_size)
+ //
+ //   Expression operations:
+-//     - wasm_prepare(request_ptr, request_size) -> response_ptr, response_size
+-//     - wasm_evaluate(request_ptr, request_size) -> response_ptr, response_size
+-//     - wasm_unprepare(id)
++//     - ZetaSqlLocalService_Prepare
++//     - ZetaSqlLocalService_Evaluate
++//     - ZetaSqlLocalService_Unprepare
+ //
+ //   Query operations:
+-//     - wasm_prepare_query(request_ptr, request_size) -> response_ptr, response_size
+-//     - wasm_evaluate_query(request_ptr, request_size) -> response_ptr, response_size
+-//     - wasm_unprepare_query(id)
++//     - ZetaSqlLocalService_PrepareQuery
++//     - ZetaSqlLocalService_EvaluateQuery
++//     - ZetaSqlLocalService_UnprepareQuery
+ //
+ //   Modify operations:
+-//     - wasm_prepare_modify(request_ptr, request_size) -> response_ptr, response_size
+-//     - wasm_evaluate_modify(request_ptr, request_size) -> response_ptr, response_size
+-//     - wasm_unprepare_modify(id)
++//     - ZetaSqlLocalService_PrepareModify
++//     - ZetaSqlLocalService_EvaluateModify
++//     - ZetaSqlLocalService_UnprepareModify
+ //
+ //   Analysis operations:
+-//     - wasm_analyze(request_ptr, request_size) -> response_ptr, response_size
+-//     - wasm_build_sql(request_ptr, request_size) -> response_ptr, response_size
+-//     - wasm_parse(request_ptr, request_size) -> response_ptr, response_size
++//     - ZetaSqlLocalService_Analyze
++//     - ZetaSqlLocalService_BuildSql
++//     - ZetaSqlLocalService_Parse
+ //
+ //   Table operations:
+-//     - wasm_extract_table_names(request_ptr, request_size) -> response_ptr, response_size
+-//     - wasm_extract_table_names_next(request_ptr, request_size) -> response_ptr, response_size
+-//     - wasm_get_table_from_proto(request_ptr, request_size) -> response_ptr, response_size
++//     - ZetaSqlLocalService_ExtractTableNamesFromStatement
++//     - ZetaSqlLocalService_ExtractTableNamesFromNextStatement
++//     - ZetaSqlLocalService_GetTableFromProto
+ //
+ //   Formatting operations:
+-//     - wasm_format_sql(request_ptr, request_size) -> response_ptr, response_size
+-//     - wasm_lenient_format_sql(request_ptr, request_size) -> response_ptr, response_size
++//     - ZetaSqlLocalService_FormatSql
++//     - ZetaSqlLocalService_LenientFormatSql
+ //
+ //   Catalog operations:
+-//     - wasm_register_catalog(request_ptr, request_size) -> response_ptr, response_size
+-//     - wasm_unregister_catalog(id)
++//     - ZetaSqlLocalService_RegisterCatalog
++//     - ZetaSqlLocalService_UnregisterCatalog
+ //
+ //   Metadata operations:
+-//     - wasm_get_builtin_functions(request_ptr, request_size) -> response_ptr, response_size
+-//     - wasm_get_language_options(request_ptr, request_size) -> response_ptr, response_size
+-//     - wasm_get_analyzer_options(request_ptr, request_size) -> response_ptr, response_size
++//     - ZetaSqlLocalService_GetBuiltinFunctions
++//     - ZetaSqlLocalService_GetLanguageOptions
++//     - ZetaSqlLocalService_GetAnalyzerOptions
+ 
+ #include <cstddef>
+ #include <cstdint>
+@@ -228,120 +232,156 @@ size_t wasm_get_last_error_size() {
+ // Expression Operations
+ // ============================================================================
+ 
+-WASM_EXPORT(wasm_prepare)
+-void* wasm_prepare(const void* request_ptr, size_t request_size, size_t* response_size) {
++WASM_EXPORT(ZetaSqlLocalService_Prepare)
++void* ZetaSqlLocalService_Prepare(const void* request_ptr, size_t request_size, size_t* response_size) {
+   auto result = HandleRPC<PrepareRequest, PrepareResponse>(
+       request_ptr, request_size, &ZetaSqlLocalServiceImpl::Prepare);
+   *response_size = result.size;
+   return result.data;
+ }
+ 
+-WASM_EXPORT(wasm_evaluate)
+-void* wasm_evaluate(const void* request_ptr, size_t request_size, size_t* response_size) {
++WASM_EXPORT(ZetaSqlLocalService_Evaluate)
++void* ZetaSqlLocalService_Evaluate(const void* request_ptr, size_t request_size, size_t* response_size) {
+   auto result = HandleRPC<EvaluateRequest, EvaluateResponse>(
+       request_ptr, request_size, &ZetaSqlLocalServiceImpl::Evaluate);
+   *response_size = result.size;
+   return result.data;
+ }
+ 
+-WASM_EXPORT(wasm_unprepare)
+-int wasm_unprepare(int64_t id) {
++WASM_EXPORT(ZetaSqlLocalService_Unprepare)
++void* ZetaSqlLocalService_Unprepare(const void* request_ptr, size_t request_size, size_t* response_size) {
+   EnsureServiceInitialized();
+-  const absl::Status status = g_service->Unprepare(id);
++  
++  UnprepareRequest request;
++  if (!DeserializeRequest(request_ptr, request_size, &request)) {
++    *response_size = 0;
++    return nullptr;
++  }
++  
++  const absl::Status status = g_service->Unprepare(request.prepared_expression_id());
+   if (!status.ok()) {
+     SetLastError(status);
+-    return static_cast<int>(status.code());
++    *response_size = 0;
++    return nullptr;
+   }
++  
+   g_last_error.clear();
+-  return 0;  // Success
++  google::protobuf::Empty response;
++  auto result = SerializeResponse(response);
++  *response_size = result.size;
++  return result.data;
+ }
+ 
+ // ============================================================================
+ // Query Operations
+ // ============================================================================
+ 
+-WASM_EXPORT(wasm_prepare_query)
+-void* wasm_prepare_query(const void* request_ptr, size_t request_size, size_t* response_size) {
++WASM_EXPORT(ZetaSqlLocalService_PrepareQuery)
++void* ZetaSqlLocalService_PrepareQuery(const void* request_ptr, size_t request_size, size_t* response_size) {
+   auto result = HandleRPC<PrepareQueryRequest, PrepareQueryResponse>(
+       request_ptr, request_size, &ZetaSqlLocalServiceImpl::PrepareQuery);
+   *response_size = result.size;
+   return result.data;
+ }
+ 
+-WASM_EXPORT(wasm_evaluate_query)
+-void* wasm_evaluate_query(const void* request_ptr, size_t request_size, size_t* response_size) {
++WASM_EXPORT(ZetaSqlLocalService_EvaluateQuery)
++void* ZetaSqlLocalService_EvaluateQuery(const void* request_ptr, size_t request_size, size_t* response_size) {
+   auto result = HandleRPC<EvaluateQueryRequest, EvaluateQueryResponse>(
+       request_ptr, request_size, &ZetaSqlLocalServiceImpl::EvaluateQuery);
+   *response_size = result.size;
+   return result.data;
+ }
+ 
+-WASM_EXPORT(wasm_unprepare_query)
+-int wasm_unprepare_query(int64_t id) {
++WASM_EXPORT(ZetaSqlLocalService_UnprepareQuery)
++void* ZetaSqlLocalService_UnprepareQuery(const void* request_ptr, size_t request_size, size_t* response_size) {
+   EnsureServiceInitialized();
+-  const absl::Status status = g_service->UnprepareQuery(id);
++  
++  UnprepareQueryRequest request;
++  if (!DeserializeRequest(request_ptr, request_size, &request)) {
++    *response_size = 0;
++    return nullptr;
++  }
++  
++  const absl::Status status = g_service->UnprepareQuery(request.prepared_query_id());
+   if (!status.ok()) {
+     SetLastError(status);
+-    return static_cast<int>(status.code());
++    *response_size = 0;
++    return nullptr;
+   }
++  
+   g_last_error.clear();
+-  return 0;
++  google::protobuf::Empty response;
++  auto result = SerializeResponse(response);
++  *response_size = result.size;
++  return result.data;
+ }
+ 
+ // ============================================================================
+ // Modify Operations
+ // ============================================================================
+ 
+-WASM_EXPORT(wasm_prepare_modify)
+-void* wasm_prepare_modify(const void* request_ptr, size_t request_size, size_t* response_size) {
++WASM_EXPORT(ZetaSqlLocalService_PrepareModify)
++void* ZetaSqlLocalService_PrepareModify(const void* request_ptr, size_t request_size, size_t* response_size) {
+   auto result = HandleRPC<PrepareModifyRequest, PrepareModifyResponse>(
+       request_ptr, request_size, &ZetaSqlLocalServiceImpl::PrepareModify);
+   *response_size = result.size;
+   return result.data;
+ }
+ 
+-WASM_EXPORT(wasm_evaluate_modify)
+-void* wasm_evaluate_modify(const void* request_ptr, size_t request_size, size_t* response_size) {
++WASM_EXPORT(ZetaSqlLocalService_EvaluateModify)
++void* ZetaSqlLocalService_EvaluateModify(const void* request_ptr, size_t request_size, size_t* response_size) {
+   auto result = HandleRPC<EvaluateModifyRequest, EvaluateModifyResponse>(
+       request_ptr, request_size, &ZetaSqlLocalServiceImpl::EvaluateModify);
+   *response_size = result.size;
+   return result.data;
+ }
+ 
+-WASM_EXPORT(wasm_unprepare_modify)
+-int wasm_unprepare_modify(int64_t id) {
++WASM_EXPORT(ZetaSqlLocalService_UnprepareModify)
++void* ZetaSqlLocalService_UnprepareModify(const void* request_ptr, size_t request_size, size_t* response_size) {
+   EnsureServiceInitialized();
+-  const absl::Status status = g_service->UnprepareModify(id);
++  
++  UnprepareModifyRequest request;
++  if (!DeserializeRequest(request_ptr, request_size, &request)) {
++    *response_size = 0;
++    return nullptr;
++  }
++  
++  const absl::Status status = g_service->UnprepareModify(request.prepared_modify_id());
+   if (!status.ok()) {
+     SetLastError(status);
+-    return static_cast<int>(status.code());
++    *response_size = 0;
++    return nullptr;
+   }
++  
+   g_last_error.clear();
+-  return 0;
++  google::protobuf::Empty response;
++  auto result = SerializeResponse(response);
++  *response_size = result.size;
++  return result.data;
+ }
+ 
+ // ============================================================================
+ // Analysis Operations
+ // ============================================================================
+ 
+-WASM_EXPORT(wasm_analyze)
+-void* wasm_analyze(const void* request_ptr, size_t request_size, size_t* response_size) {
++WASM_EXPORT(ZetaSqlLocalService_Analyze)
++void* ZetaSqlLocalService_Analyze(const void* request_ptr, size_t request_size, size_t* response_size) {
+   auto result = HandleRPC<AnalyzeRequest, AnalyzeResponse>(
+       request_ptr, request_size, &ZetaSqlLocalServiceImpl::Analyze);
+   *response_size = result.size;
+   return result.data;
+ }
+ 
+-WASM_EXPORT(wasm_build_sql)
+-void* wasm_build_sql(const void* request_ptr, size_t request_size, size_t* response_size) {
++WASM_EXPORT(ZetaSqlLocalService_BuildSql)
++void* ZetaSqlLocalService_BuildSql(const void* request_ptr, size_t request_size, size_t* response_size) {
+   auto result = HandleRPC<BuildSqlRequest, BuildSqlResponse>(
+       request_ptr, request_size, &ZetaSqlLocalServiceImpl::BuildSql);
+   *response_size = result.size;
+   return result.data;
+ }
+ 
+-WASM_EXPORT(wasm_parse)
+-void* wasm_parse(const void* request_ptr, size_t request_size, size_t* response_size) {
++WASM_EXPORT(ZetaSqlLocalService_Parse)
++void* ZetaSqlLocalService_Parse(const void* request_ptr, size_t request_size, size_t* response_size) {
+   auto result = HandleRPC<ParseRequest, ParseResponse>(
+       request_ptr, request_size, &ZetaSqlLocalServiceImpl::Parse);
+   *response_size = result.size;
+@@ -352,24 +392,24 @@ void* wasm_parse(const void* request_ptr, size_t request_size, size_t* response_
+ // Table Operations
+ // ============================================================================
+ 
+-WASM_EXPORT(wasm_extract_table_names)
+-void* wasm_extract_table_names(const void* request_ptr, size_t request_size, size_t* response_size) {
++WASM_EXPORT(ZetaSqlLocalService_ExtractTableNamesFromStatement)
++void* ZetaSqlLocalService_ExtractTableNamesFromStatement(const void* request_ptr, size_t request_size, size_t* response_size) {
+   auto result = HandleRPC<ExtractTableNamesFromStatementRequest, ExtractTableNamesFromStatementResponse>(
+       request_ptr, request_size, &ZetaSqlLocalServiceImpl::ExtractTableNamesFromStatement);
+   *response_size = result.size;
+   return result.data;
+ }
+ 
+-WASM_EXPORT(wasm_extract_table_names_next)
+-void* wasm_extract_table_names_next(const void* request_ptr, size_t request_size, size_t* response_size) {
++WASM_EXPORT(ZetaSqlLocalService_ExtractTableNamesFromNextStatement)
++void* ZetaSqlLocalService_ExtractTableNamesFromNextStatement(const void* request_ptr, size_t request_size, size_t* response_size) {
+   auto result = HandleRPC<ExtractTableNamesFromNextStatementRequest, ExtractTableNamesFromNextStatementResponse>(
+       request_ptr, request_size, &ZetaSqlLocalServiceImpl::ExtractTableNamesFromNextStatement);
+   *response_size = result.size;
+   return result.data;
+ }
+ 
+-WASM_EXPORT(wasm_get_table_from_proto)
+-void* wasm_get_table_from_proto(const void* request_ptr, size_t request_size, size_t* response_size) {
++WASM_EXPORT(ZetaSqlLocalService_GetTableFromProto)
++void* ZetaSqlLocalService_GetTableFromProto(const void* request_ptr, size_t request_size, size_t* response_size) {
+   auto result = HandleRPC<TableFromProtoRequest, zetasql::SimpleTableProto>(
+       request_ptr, request_size, &ZetaSqlLocalServiceImpl::GetTableFromProto);
+   *response_size = result.size;
+@@ -380,16 +420,16 @@ void* wasm_get_table_from_proto(const void* request_ptr, size_t request_size, si
+ // Formatting Operations
+ // ============================================================================
+ 
+-WASM_EXPORT(wasm_format_sql)
+-void* wasm_format_sql(const void* request_ptr, size_t request_size, size_t* response_size) {
++WASM_EXPORT(ZetaSqlLocalService_FormatSql)
++void* ZetaSqlLocalService_FormatSql(const void* request_ptr, size_t request_size, size_t* response_size) {
+   auto result = HandleRPC<FormatSqlRequest, FormatSqlResponse>(
+       request_ptr, request_size, &ZetaSqlLocalServiceImpl::FormatSql);
+   *response_size = result.size;
+   return result.data;
+ }
+ 
+-WASM_EXPORT(wasm_lenient_format_sql)
+-void* wasm_lenient_format_sql(const void* request_ptr, size_t request_size, size_t* response_size) {
++WASM_EXPORT(ZetaSqlLocalService_LenientFormatSql)
++void* ZetaSqlLocalService_LenientFormatSql(const void* request_ptr, size_t request_size, size_t* response_size) {
+   auto result = HandleRPC<FormatSqlRequest, FormatSqlResponse>(
+       request_ptr, request_size, &ZetaSqlLocalServiceImpl::LenientFormatSql);
+   *response_size = result.size;
+@@ -400,48 +440,60 @@ void* wasm_lenient_format_sql(const void* request_ptr, size_t request_size, size
+ // Catalog Operations
+ // ============================================================================
+ 
+-WASM_EXPORT(wasm_register_catalog)
+-void* wasm_register_catalog(const void* request_ptr, size_t request_size, size_t* response_size) {
++WASM_EXPORT(ZetaSqlLocalService_RegisterCatalog)
++void* ZetaSqlLocalService_RegisterCatalog(const void* request_ptr, size_t request_size, size_t* response_size) {
+   auto result = HandleRPC<RegisterCatalogRequest, RegisterResponse>(
+       request_ptr, request_size, &ZetaSqlLocalServiceImpl::RegisterCatalog);
+   *response_size = result.size;
+   return result.data;
+ }
+ 
+-WASM_EXPORT(wasm_unregister_catalog)
+-int wasm_unregister_catalog(int64_t id) {
++WASM_EXPORT(ZetaSqlLocalService_UnregisterCatalog)
++void* ZetaSqlLocalService_UnregisterCatalog(const void* request_ptr, size_t request_size, size_t* response_size) {
+   EnsureServiceInitialized();
+-  const absl::Status status = g_service->UnregisterCatalog(id);
++  
++  UnregisterRequest request;
++  if (!DeserializeRequest(request_ptr, request_size, &request)) {
++    *response_size = 0;
++    return nullptr;
++  }
++  
++  const absl::Status status = g_service->UnregisterCatalog(request.registered_id());
+   if (!status.ok()) {
+     SetLastError(status);
+-    return static_cast<int>(status.code());
++    *response_size = 0;
++    return nullptr;
+   }
++  
+   g_last_error.clear();
+-  return 0;
++  google::protobuf::Empty response;
++  auto result = SerializeResponse(response);
++  *response_size = result.size;
++  return result.data;
+ }
+ 
+ // ============================================================================
+ // Metadata Operations
+ // ============================================================================
+ 
+-WASM_EXPORT(wasm_get_builtin_functions)
+-void* wasm_get_builtin_functions(const void* request_ptr, size_t request_size, size_t* response_size) {
++WASM_EXPORT(ZetaSqlLocalService_GetBuiltinFunctions)
++void* ZetaSqlLocalService_GetBuiltinFunctions(const void* request_ptr, size_t request_size, size_t* response_size) {
+   auto result = HandleRPC<zetasql::ZetaSQLBuiltinFunctionOptionsProto, GetBuiltinFunctionsResponse>(
+       request_ptr, request_size, &ZetaSqlLocalServiceImpl::GetBuiltinFunctions);
+   *response_size = result.size;
+   return result.data;
+ }
+ 
+-WASM_EXPORT(wasm_get_language_options)
+-void* wasm_get_language_options(const void* request_ptr, size_t request_size, size_t* response_size) {
++WASM_EXPORT(ZetaSqlLocalService_GetLanguageOptions)
++void* ZetaSqlLocalService_GetLanguageOptions(const void* request_ptr, size_t request_size, size_t* response_size) {
+   auto result = HandleRPC<LanguageOptionsRequest, zetasql::LanguageOptionsProto>(
+       request_ptr, request_size, &ZetaSqlLocalServiceImpl::GetLanguageOptions);
+   *response_size = result.size;
+   return result.data;
+ }
+ 
+-WASM_EXPORT(wasm_get_analyzer_options)
+-void* wasm_get_analyzer_options(const void* request_ptr, size_t request_size, size_t* response_size) {
++WASM_EXPORT(ZetaSqlLocalService_GetAnalyzerOptions)
++void* ZetaSqlLocalService_GetAnalyzerOptions(const void* request_ptr, size_t request_size, size_t* response_size) {
+   auto result = HandleRPC<AnalyzerOptionsRequest, zetasql::AnalyzerOptionsProto>(
+       request_ptr, request_size, &ZetaSqlLocalServiceImpl::GetAnalyzerOptions);
+   *response_size = result.size;
+-- 
+2.34.1
+

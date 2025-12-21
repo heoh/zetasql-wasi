@@ -15,6 +15,44 @@ The optimized WebAssembly binary of ZetaSQL Local Service, compiled with WASI su
 - The module implements the ZetaSQL Local Service RPC interface.
 - You need to implement a wrapper in your target language to call the WASM exports (malloc, free, and RPC methods).
 
+RPC exports use the convention `ZetaSqlLocalService_{MethodName}` and follow a uniform calling convention:
+
+`void* ZetaSqlLocalService_{MethodName}(const void* request_ptr, size_t request_size, size_t* response_size)`
+
+Even operations that previously accepted a single integer (for example unprepare/unregister) now accept a protobuf request message (for example `UnprepareRequest` / `UnregisterRequest`) serialized to bytes, so every RPC uses the same pointer/size calling pattern and returns a malloc'd response buffer (or `nullptr` on error).
+
+Memory and error helper exports in the current binary still use the `wasm_` names; use these to manage memory and read errors:
+
+- `wasm_malloc(size)` — allocate memory in WASM
+- `wasm_free(ptr)` — free memory in WASM
+- `wasm_get_last_error()` — get pointer to last error string
+- `wasm_get_last_error_size()` — get last error string size
+
+RPC export examples:
+
+- `ZetaSqlLocalService_Prepare(request_ptr, request_size, response_size_ptr)` - returns response_ptr or `nullptr` on error
+- `ZetaSqlLocalService_Analyze(request_ptr, request_size, response_size_ptr)`
+- `ZetaSqlLocalService_UnprepareModify(request_ptr, request_size, response_size_ptr)`
+
+C signature example:
+```c
+// RPC methods return response_ptr (malloc'd in WASM) or NULL on error.
+void* ZetaSqlLocalService_Prepare(const void* request_ptr, size_t request_size, size_t* response_size);
+
+// Memory helpers (current binary exports)
+void* wasm_malloc(size_t size);
+void wasm_free(void* ptr);
+const char* wasm_get_last_error();
+size_t wasm_get_last_error_size();
+```
+
+Memory contract reminder:
+- Request buffers: allocate with `wasm_malloc`, write request bytes, pass pointer+size to RPC, then free the request buffer with `wasm_free`.
+- Response buffers: allocated by WASM; client MUST free them with `wasm_free`.
+- Error messages: read via `wasm_get_last_error()`; they are owned by the module and need not be freed.
+
+The rest of this document shows how to integrate with the release artifacts.
+
 ### 2. `zetasql-proto.tar.gz`
 
 Collection of Protocol Buffer definition files for ZetaSQL APIs.

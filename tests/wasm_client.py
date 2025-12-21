@@ -9,9 +9,10 @@ import os
 import sys
 import re
 from enum import IntEnum
+from google.protobuf import empty_pb2
 from typing import Optional, Any
 from wasmtime import Store, Module, Instance, Func, FuncType, ValType, Linker, WasiConfig
-
+from zetasql.local_service import local_service_pb2
 
 # WASM constants
 WASM32_SIZE_T_BYTES = 4  # size_t is 4 bytes in wasm32
@@ -231,8 +232,9 @@ class WasmClient:
         Raises:
             RuntimeError: If the RPC call fails (returns nullptr)
         """
-        # Convert to wasm_ prefixed name
-        wasm_method_name = f"wasm_{method_name[0].lower() + method_name[1:]}" if method_name[0].isupper() else f"wasm_{method_name}"
+        # Convert to ZetaSqlLocalService_ prefixed name (CamelCase format)
+        # Method names should already be in the correct format (e.g., "Prepare", "PrepareQuery")
+        wasm_method_name = f"ZetaSqlLocalService_{method_name}"
         
         # Get or cache the method export
         if wasm_method_name not in self._rpc_methods:
@@ -280,203 +282,139 @@ class WasmClient:
             self.free_bytes(response_size_ptr)
     
     def prepare_expression(self, request_proto):
-        """Call wasm_prepare RPC method."""
+        """Call ZetaSqlLocalService_Prepare RPC method."""
         request_data = request_proto.SerializeToString()
-        response_data = self.call_rpc_method("prepare", request_data)
+        response_data = self.call_rpc_method("Prepare", request_data)
         
-        from zetasql.local_service import local_service_pb2
         response = local_service_pb2.PrepareResponse()
         response.ParseFromString(response_data)
         return response
     
     def evaluate_expression(self, request_proto):
-        """Call wasm_evaluate RPC method."""
+        """Call ZetaSqlLocalService_Evaluate RPC method."""
         request_data = request_proto.SerializeToString()
-        response_data = self.call_rpc_method("evaluate", request_data)
+        response_data = self.call_rpc_method("Evaluate", request_data)
         
-        from zetasql.local_service import local_service_pb2
         response = local_service_pb2.EvaluateResponse()
         response.ParseFromString(response_data)
         return response
     
     def unprepare_expression(self, request_proto):
-        """Call wasm_unprepare RPC method (takes only the ID, not a full request)."""
-        # wasm_unprepare has signature: int wasm_unprepare(int64_t id)
-        # It returns 0 on success or error code on failure
-        prepared_id = request_proto.prepared_expression_id
-        
-        # Get the wasm_unprepare function
-        if "wasm_unprepare" not in self._rpc_methods:
-            self._rpc_methods["wasm_unprepare"] = self.instance.exports(self.store)["wasm_unprepare"]
-        
-        unprepare_func = self._rpc_methods["wasm_unprepare"]
-        
-        # Call with just the ID
-        result = unprepare_func(self.store, prepared_id)
-        
-        # Check for error (0 = success, non-zero = absl::StatusCode)
-        if result != 0:
-            error_str = self.get_last_error()
-            raise ZetaSQLError.from_error_string(error_str)
-        
-        # Return empty response (unprepare doesn't return data)
-        from google.protobuf import empty_pb2
+        """Call ZetaSqlLocalService_Unprepare RPC method (now uses request_ptr)."""
+        request_data = request_proto.SerializeToString()
+        response_data = self.call_rpc_method("Unprepare", request_data)
+
         return empty_pb2.Empty()
     
     def prepare_query(self, request_proto):
-        """Call wasm_prepare_query RPC method."""
+        """Call ZetaSqlLocalService_PrepareQuery RPC method."""
         request_data = request_proto.SerializeToString()
-        response_data = self.call_rpc_method("prepare_query", request_data)
+        response_data = self.call_rpc_method("PrepareQuery", request_data)
         
-        from zetasql.local_service import local_service_pb2
         response = local_service_pb2.PrepareQueryResponse()
         response.ParseFromString(response_data)
         return response
     
     def evaluate_query(self, request_proto):
-        """Call wasm_evaluate_query RPC method."""
+        """Call ZetaSqlLocalService_EvaluateQuery RPC method."""
         request_data = request_proto.SerializeToString()
-        response_data = self.call_rpc_method("evaluate_query", request_data)
+        response_data = self.call_rpc_method("EvaluateQuery", request_data)
         
-        from zetasql.local_service import local_service_pb2
         response = local_service_pb2.EvaluateQueryResponse()
         response.ParseFromString(response_data)
         return response
     
     def unprepare_query(self, request_proto):
-        """Call wasm_unprepare_query RPC method (takes only the ID, not a full request)."""
-        # wasm_unprepare_query has signature: int wasm_unprepare_query(int64_t id)
-        # It returns 0 on success or error code on failure
-        prepared_id = request_proto.prepared_query_id
+        """Call ZetaSqlLocalService_UnprepareQuery RPC method (now uses request_ptr)."""
+        request_data = request_proto.SerializeToString()
+        response_data = self.call_rpc_method("UnprepareQuery", request_data)
         
-        # Get the wasm_unprepare_query function
-        if "wasm_unprepare_query" not in self._rpc_methods:
-            self._rpc_methods["wasm_unprepare_query"] = self.instance.exports(self.store)["wasm_unprepare_query"]
-        
-        unprepare_func = self._rpc_methods["wasm_unprepare_query"]
-        
-        # Call with just the ID
-        result = unprepare_func(self.store, prepared_id)
-        
-        # Check for error (0 = success, non-zero = absl::StatusCode)
-        if result != 0:
-            error_str = self.get_last_error()
-            raise ZetaSQLError.from_error_string(error_str)
-        
-        # Return empty response
-        from google.protobuf import empty_pb2
         return empty_pb2.Empty()
     
     def prepare_modify(self, request_proto):
-        """Call wasm_prepare_modify RPC method."""
+        """Call ZetaSqlLocalService_PrepareModify RPC method."""
         request_data = request_proto.SerializeToString()
-        response_data = self.call_rpc_method("prepare_modify", request_data)
+        response_data = self.call_rpc_method("PrepareModify", request_data)
         
-        from zetasql.local_service import local_service_pb2
         response = local_service_pb2.PrepareModifyResponse()
         response.ParseFromString(response_data)
         return response
     
     def evaluate_modify(self, request_proto):
-        """Call wasm_evaluate_modify RPC method."""
+        """Call ZetaSqlLocalService_EvaluateModify RPC method."""
         request_data = request_proto.SerializeToString()
-        response_data = self.call_rpc_method("evaluate_modify", request_data)
+        response_data = self.call_rpc_method("EvaluateModify", request_data)
         
-        from zetasql.local_service import local_service_pb2
         response = local_service_pb2.EvaluateModifyResponse()
         response.ParseFromString(response_data)
         return response
     
     def unprepare_modify(self, request_proto):
-        """Call wasm_unprepare_modify RPC method (takes only the ID, not a full request)."""
-        # wasm_unprepare_modify has signature: int wasm_unprepare_modify(int64_t id)
-        # It returns 0 on success or error code on failure
-        prepared_id = request_proto.prepared_modify_id
-        
-        # Get the wasm_unprepare_modify function
-        if "wasm_unprepare_modify" not in self._rpc_methods:
-            self._rpc_methods["wasm_unprepare_modify"] = self.instance.exports(self.store)["wasm_unprepare_modify"]
-        
-        unprepare_func = self._rpc_methods["wasm_unprepare_modify"]
-        
-        # Call with just the ID
-        result = unprepare_func(self.store, prepared_id)
-        
-        # Check for error (0 = success, non-zero = absl::StatusCode)
-        if result != 0:
-            error_str = self.get_last_error()
-            raise ZetaSQLError.from_error_string(error_str)
-        
-        # Return empty response
-        from google.protobuf import empty_pb2
-        return empty_pb2.Empty()
-    
-    def analyze(self, request_proto):
-        """Call wasm_analyze RPC method."""
+        """Call ZetaSqlLocalService_UnprepareModify RPC method (now uses request_ptr)."""
         request_data = request_proto.SerializeToString()
-        response_data = self.call_rpc_method("analyze", request_data)
+        response_data = self.call_rpc_method("UnprepareModify", request_data)
         
-        from zetasql.local_service import local_service_pb2
+        return empty_pb2.Empty()
+
+    def analyze(self, request_proto):
+        """Call ZetaSqlLocalService_Analyze RPC method."""
+        request_data = request_proto.SerializeToString()
+        response_data = self.call_rpc_method("Analyze", request_data)
+        
         response = local_service_pb2.AnalyzeResponse()
         response.ParseFromString(response_data)
         return response
     
     def parse(self, request_proto):
-        """Call wasm_parse RPC method."""
+        """Call ZetaSqlLocalService_Parse RPC method."""
         request_data = request_proto.SerializeToString()
-        response_data = self.call_rpc_method("parse", request_data)
+        response_data = self.call_rpc_method("Parse", request_data)
         
-        from zetasql.local_service import local_service_pb2
         response = local_service_pb2.ParseResponse()
         response.ParseFromString(response_data)
         return response
     
     def build_sql(self, request_proto):
-        """Call wasm_build_sql RPC method."""
+        """Call ZetaSqlLocalService_BuildSql RPC method."""
         request_data = request_proto.SerializeToString()
-        response_data = self.call_rpc_method("build_sql", request_data)
+        response_data = self.call_rpc_method("BuildSql", request_data)
         
-        from zetasql.local_service import local_service_pb2
         response = local_service_pb2.BuildSqlResponse()
         response.ParseFromString(response_data)
         return response
     
     def extract_table_names_from_statement(self, request_proto):
-        """Call wasm_extract_table_names RPC method."""
+        """Call ZetaSqlLocalService_ExtractTableNamesFromStatement RPC method."""
         request_data = request_proto.SerializeToString()
-        response_data = self.call_rpc_method("extract_table_names", request_data)
+        response_data = self.call_rpc_method("ExtractTableNamesFromStatement", request_data)
         
-        from zetasql.local_service import local_service_pb2
         response = local_service_pb2.ExtractTableNamesFromStatementResponse()
         response.ParseFromString(response_data)
         return response
     
     def format_sql(self, request_proto):
-        """Call wasm_format_sql RPC method."""
+        """Call ZetaSqlLocalService_FormatSql RPC method."""
         request_data = request_proto.SerializeToString()
-        response_data = self.call_rpc_method("format_sql", request_data)
+        response_data = self.call_rpc_method("FormatSql", request_data)
         
-        from zetasql.local_service import local_service_pb2
         response = local_service_pb2.FormatSqlResponse()
         response.ParseFromString(response_data)
         return response
     
     def register_catalog(self, request_proto):
-        """Call wasm_register_catalog RPC method."""
+        """Call ZetaSqlLocalService_RegisterCatalog RPC method."""
         request_data = request_proto.SerializeToString()
-        response_data = self.call_rpc_method("register_catalog", request_data)
+        response_data = self.call_rpc_method("RegisterCatalog", request_data)
         
-        from zetasql.local_service import local_service_pb2
         response = local_service_pb2.RegisterResponse()
         response.ParseFromString(response_data)
         return response
     
     def get_builtin_functions(self, request_proto):
-        """Call wasm_get_builtin_functions RPC method."""
+        """Call ZetaSqlLocalService_GetBuiltinFunctions RPC method."""
         request_data = request_proto.SerializeToString()
-        response_data = self.call_rpc_method("get_builtin_functions", request_data)
+        response_data = self.call_rpc_method("GetBuiltinFunctions", request_data)
         
-        from zetasql.local_service import local_service_pb2
         response = local_service_pb2.GetBuiltinFunctionsResponse()
         response.ParseFromString(response_data)
         return response
