@@ -10,7 +10,7 @@ import pytest
 
 # Add generated protobuf code to path
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-GENERATED_PB_PATH = os.path.join(PROJECT_ROOT, "tests", "generated_pb")
+GENERATED_PB_PATH = os.path.join(PROJECT_ROOT, "build", "generated_pb")
 TESTS_PATH = os.path.join(PROJECT_ROOT, "tests")
 sys.path.insert(0, GENERATED_PB_PATH)
 sys.path.insert(0, TESTS_PATH)
@@ -25,8 +25,8 @@ from zetasql.public import options_pb2, type_pb2, value_pb2
 def wasm_path():
     """Path to the optimized WASM binary."""
     # Try optimized version first, fall back to regular version
-    opt_path = os.path.join(PROJECT_ROOT, "build", "zetasql_local_service_wasi.opt.wasm")
-    regular_path = os.path.join(PROJECT_ROOT, "build", "zetasql_local_service_wasi.wasm")
+    opt_path = os.path.join(PROJECT_ROOT, "build", "zetasql.opt.wasm")
+    regular_path = os.path.join(PROJECT_ROOT, "build", "zetasql.wasm")
     
     if os.path.exists(regular_path):
         path = regular_path

@@ -35,8 +35,8 @@ bazel build --config=wasi //zetasql/local_service:local_service_wasi_opt
 # Step 3: Copy WASM binary
 echo ""
 echo "Step 3/5: Copying WASM binary..."
-cp bazel-bin/zetasql/local_service/local_service_wasi $BUILD_DIR/zetasql_local_service_wasi.wasm
-cp bazel-bin/zetasql/local_service/local_service_wasi.opt.wasm $BUILD_DIR/zetasql_local_service_wasi.opt.wasm
+cp bazel-bin/zetasql/local_service/local_service_wasi $BUILD_DIR/zetasql.wasm
+cp bazel-bin/zetasql/local_service/local_service_wasi.opt.wasm $BUILD_DIR/zetasql.opt.wasm
 
 # Step 4: Build generated proto files
 echo ""
@@ -46,7 +46,7 @@ bazel build //zetasql/parser:parse_tree //zetasql/resolved_ast:resolved_ast
 # Step 5: Collect proto files
 echo ""
 echo "Step 5/5: Collecting proto files..."
-PROTO_DIR="$PROJECT_ROOT/build/zetasql_local_service_proto"
+PROTO_DIR="$PROJECT_ROOT/build/zetasql-proto"
 
 # Clean and prepare directory
 rm -rf "$PROTO_DIR"
@@ -79,6 +79,6 @@ echo ""
 echo "✅ Build complete!"
 echo ""
 echo "Build artifacts created in build/:"
-echo "  - zetasql_local_service_wasi.wasm ($(ls -lh build/zetasql_local_service_wasi.wasm | awk '{print $5}'))"
-echo "  - zetasql_local_service_wasi.opt.wasm ($(ls -lh build/zetasql_local_service_wasi.opt.wasm | awk '{print $5}'))"
-echo "  - zetasql_local_service_proto/ (contains $(find "$PROTO_DIR" -name "*.proto" | wc -l) proto files)"
+echo "  - zetasql.wasm ($(ls -lh build/zetasql.wasm | awk '{print $5}'))"
+echo "  - zetasql.opt.wasm ($(ls -lh build/zetasql.opt.wasm | awk '{print $5}'))"
+echo "  - zetasql-proto/ (contains $(find "$PROTO_DIR" -name "*.proto" | wc -l) proto files)"

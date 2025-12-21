@@ -7,10 +7,10 @@ set -e
 # Get script directory
 SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 PROJECT_ROOT=$(realpath "${SCRIPT_DIR}/..")
-WASM_FILE="$PROJECT_ROOT/build/zetasql_local_service_wasi.opt.wasm"
+WASM_FILE="$PROJECT_ROOT/build/zetasql.opt.wasm"
 VENV_DIR="$PROJECT_ROOT/.venv"
-PROTO_DIR="$PROJECT_ROOT/build/zetasql_local_service_proto"
-PROTO_PB_DIR="$PROJECT_ROOT/tests/generated_pb"
+PROTO_DIR="$PROJECT_ROOT/build/zetasql-proto"
+PROTO_PB_DIR="$PROJECT_ROOT/build/generated_pb"
 
 echo "ZetaSQL WASI Test Runner"
 echo "========================"
@@ -46,7 +46,7 @@ pip install -q -r "$PROJECT_ROOT/requirements-test.txt"
 echo "✓ Dependencies installed"
 
 # Step 5: Generate protobuf code if needed
-if [ ! -d "$PROJECT_ROOT/tests/generated_pb/zetasql" ]; then
+if [ ! -d "$PROTO_PB_DIR/zetasql" ]; then
   echo ""
   echo "Generating protobuf code..."
   

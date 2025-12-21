@@ -20,14 +20,14 @@ if [ ! -d "$BUILD_DIR" ]; then
   exit 1
 fi
 
-if [ ! -f "$BUILD_DIR/zetasql_local_service_wasi.opt.wasm" ]; then
-  echo "Error: Optimized WASM binary not found: $BUILD_DIR/zetasql_local_service_wasi.opt.wasm"
+if [ ! -f "$BUILD_DIR/zetasql.opt.wasm" ]; then
+  echo "Error: Optimized WASM binary not found: $BUILD_DIR/zetasql.opt.wasm"
   echo "Please run scripts/build.sh first to build the artifacts."
   exit 1
 fi
 
-if [ ! -d "$BUILD_DIR/zetasql_local_service_proto" ]; then
-  echo "Error: Proto directory not found: $BUILD_DIR/zetasql_local_service_proto"
+if [ ! -d "$BUILD_DIR/zetasql-proto" ]; then
+  echo "Error: Proto directory not found: $BUILD_DIR/zetasql-proto"
   echo "Please run scripts/build.sh first to build the artifacts."
   exit 1
 fi
@@ -40,19 +40,19 @@ mkdir -p "$RELEASE_DIR"
 # Step 2: Copy and rename WASM binary
 echo ""
 echo "Step 2/4: Copying WASM binary..."
-cp "$BUILD_DIR/zetasql_local_service_wasi.opt.wasm" "$RELEASE_DIR/zetasql_local_service_wasi.wasm"
+cp "$BUILD_DIR/zetasql.opt.wasm" "$RELEASE_DIR/zetasql.wasm"
 
 # Step 3: Create proto tarball
 echo ""
 echo "Step 3/4: Creating proto tarball..."
-tar -czf "$RELEASE_DIR/zetasql_local_service_proto.tar.gz" -C "$BUILD_DIR/zetasql_local_service_proto" zetasql
+tar -czf "$RELEASE_DIR/zetasql-proto.tar.gz" -C "$BUILD_DIR/zetasql-proto" zetasql
 
 # Step 4: Generate checksums
 echo ""
 echo "Step 4/4: Generating checksums..."
 cd "$RELEASE_DIR"
-sha256sum zetasql_local_service_wasi.wasm > zetasql_local_service_wasi.wasm.sha256
-sha256sum zetasql_local_service_proto.tar.gz > zetasql_local_service_proto.tar.gz.sha256
+sha256sum zetasql.wasm > zetasql.wasm.sha256
+sha256sum zetasql-proto.tar.gz > zetasql-proto.tar.gz.sha256
 
 # Display results
 cd "$PROJECT_ROOT"
@@ -60,12 +60,12 @@ echo ""
 echo "✅ Release preparation complete!"
 echo ""
 echo "Release artifacts created in release/:"
-echo "  - zetasql_local_service_wasi.wasm ($(ls -lh release/zetasql_local_service_wasi.wasm | awk '{print $5}'))"
-echo "  - zetasql_local_service_proto.tar.gz ($(ls -lh release/zetasql_local_service_proto.tar.gz | awk '{print $5}'))"
+echo "  - zetasql.wasm ($(ls -lh release/zetasql.wasm | awk '{print $5}'))"
+echo "  - zetasql-proto.tar.gz ($(ls -lh release/zetasql-proto.tar.gz | awk '{print $5}'))"
 echo ""
 echo "Checksums:"
-cat release/zetasql_local_service_wasi.wasm.sha256
-cat release/zetasql_local_service_proto.tar.gz.sha256
+cat release/zetasql.wasm.sha256
+cat release/zetasql-proto.tar.gz.sha256
 echo ""
 echo "Next steps:"
 echo "  1. Verify checksums: cd release && sha256sum -c *.sha256"

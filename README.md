@@ -54,9 +54,9 @@ Build the WASM binary and proto files:
 ```
 
 This will create the `build/` directory with:
-- `zetasql_local_service_wasi.wasm` - WASM binary
-- `zetasql_local_service_wasi.opt.wasm` - Optimized WASM binary
-- `zetasql_local_service_proto/` - Proto file collection
+- `zetasql.wasm` - WASM binary
+- `zetasql.opt.wasm` - Optimized WASM binary
+- `zetasql-proto/` - Proto file collection
 
 ### 5. Test
 
@@ -88,8 +88,8 @@ Create distribution-ready release artifacts:
 ```
 
 This will create the `release/` directory with:
-- `zetasql_local_service_wasi.wasm` - Optimized WASM binary (renamed from build)
-- `zetasql_local_service_proto.tar.gz` - Proto file tarball
+- `zetasql.wasm` - Optimized WASM binary (renamed from build)
+- `zetasql-proto.tar.gz` - Proto file tarball
 - `*.sha256` - Checksum files
 
 ## Build Output
@@ -98,16 +98,16 @@ This will create the `release/` directory with:
 
 Intermediate build artifacts for development and testing:
 
-- **`zetasql_local_service_wasi.wasm`** - Standard WASM binary (~100-200MB)
-- **`zetasql_local_service_wasi.opt.wasm`** - Optimized WASM binary (~50-100MB, optimized with wasm-opt)
-- **`zetasql_local_service_proto/`** - Directory containing ~70 proto files
+- **`zetasql.wasm`** - Standard WASM binary (~100-200MB)
+- **`zetasql.opt.wasm`** - Optimized WASM binary (~50-100MB, optimized with wasm-opt)
+- **`zetasql-proto/`** - Directory containing ~70 proto files
 
 ### Release Directory (`release/`)
 
 Distribution-ready artifacts for end users:
 
-- **`zetasql_local_service_wasi.wasm`** - Optimized WASM binary
-- **`zetasql_local_service_proto.tar.gz`** - Proto file collection (tarball)
+- **`zetasql.wasm`** - Optimized WASM binary
+- **`zetasql-proto.tar.gz`** - Proto file collection (tarball)
 - **`*.sha256`** - SHA256 checksum files
 
 See [docs/RELEASE_USAGE.md](docs/RELEASE_USAGE.md) for detailed usage instructions and guidance on creating language-specific wrapper packages.
@@ -133,7 +133,7 @@ The test script automatically:
 
 - Python 3.7+
 - protoc (Protocol Buffer compiler)
-- Built WASM binary (`build/zetasql_local_service_wasi.opt.wasm`)
+- Built WASM binary (`build/zetasql.opt.wasm`)
 
 ### Test Coverage
 
