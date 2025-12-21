@@ -28,10 +28,10 @@ def wasm_path():
     opt_path = os.path.join(PROJECT_ROOT, "build", "zetasql.opt.wasm")
     regular_path = os.path.join(PROJECT_ROOT, "build", "zetasql.wasm")
     
-    if os.path.exists(regular_path):
-        path = regular_path
-    elif os.path.exists(opt_path):
+    if os.path.exists(opt_path):
         path = opt_path
+    elif os.path.exists(regular_path):
+        path = regular_path
     else:
         pytest.skip(f"WASM binary not found")
     
