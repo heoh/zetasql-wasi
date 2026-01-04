@@ -1,0 +1,22 @@
+From: heoh <h0h6h2h5@gmail.com>
+Subject: [PATCH] WASI: Increase memory and stack size to fix memory error
+
+---
+ .bazelrc | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/.bazelrc b/.bazelrc
+index a1598f54..d0b31fc4 100644
+--- a/.bazelrc
++++ b/.bazelrc
+@@ -107,4 +107,6 @@ build:wasi --linkopt=-lwasi-emulated-mman
+ build:wasi --linkopt=-lwasi-emulated-signal
+ 
+ # Memory configuration
+-build:wasi --linkopt=-Wl,--max-memory=1073741824  # 1GB
++build:wasi --linkopt=-Wl,--max-memory=4294967296  # 4GB (maximum for WASM32)
++build:wasi --linkopt=-Wl,--stack-first  # Put stack at beginning for better overflow detection
++build:wasi --linkopt=-Wl,-z,stack-size=8388608  # 8MB stack size (increased from default ~1MB)
+-- 
+2.34.1
+
