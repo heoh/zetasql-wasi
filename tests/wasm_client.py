@@ -300,7 +300,7 @@ class WasmClient:
         return response
     
     def unprepare_expression(self, request_proto):
-        """Call ZetaSqlLocalService_Unprepare RPC method (now uses request_ptr)."""
+        """Call ZetaSqlLocalService_Unprepare RPC method."""
         request_data = request_proto.SerializeToString()
         response_data = self.call_rpc_method("Unprepare", request_data)
 
@@ -325,7 +325,7 @@ class WasmClient:
         return response
     
     def unprepare_query(self, request_proto):
-        """Call ZetaSqlLocalService_UnprepareQuery RPC method (now uses request_ptr)."""
+        """Call ZetaSqlLocalService_UnprepareQuery RPC method."""
         request_data = request_proto.SerializeToString()
         response_data = self.call_rpc_method("UnprepareQuery", request_data)
         
@@ -350,7 +350,7 @@ class WasmClient:
         return response
     
     def unprepare_modify(self, request_proto):
-        """Call ZetaSqlLocalService_UnprepareModify RPC method (now uses request_ptr)."""
+        """Call ZetaSqlLocalService_UnprepareModify RPC method."""
         request_data = request_proto.SerializeToString()
         response_data = self.call_rpc_method("UnprepareModify", request_data)
         
